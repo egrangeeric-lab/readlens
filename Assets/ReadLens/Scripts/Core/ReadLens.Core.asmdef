@@ -1,0 +1,5 @@
+{
+    "name": "ReadLens.Core",
+    "rootNamespace": "ReadLens.Core",
+    "noEngineReferences": true
+}
