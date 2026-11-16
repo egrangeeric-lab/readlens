@@ -109,7 +109,9 @@ namespace ReadLens.App
             return g;
         }
 
-        public static Button Button(Transform parent, string text, UnityAction onClick, float width = -1, float height = Touch, float textSize = 34)
+        // An icon, when given, sits left of the label (words stay: icons alone are not enough for young readers).
+        public static Button Button(Transform parent, string text, UnityAction onClick, float width = -1, float height = Touch, float textSize = 34,
+            Sprite icon = null)
         {
             var bg = Panel(parent, Card, 24, "Button: " + text);
             var b = bg.gameObject.AddComponent<Button>();
@@ -119,8 +121,21 @@ namespace ReadLens.App
             colors.pressedColor = new Color(0.7f, 0.78f, 0.95f);
             b.colors = colors;
             b.onClick.AddListener(onClick);
-            var label = Label(bg.transform, text, textSize, Ink, true, TextAlignmentOptions.Center);
-            Stretch(label.rectTransform, 12, 0, 12, 0);
+            bg.gameObject.AddComponent<PressFeedback>();
+            var holder = bg.transform;
+            if (icon != null)
+            {
+                var row = Layout<HorizontalLayoutGroup>(Stretch(Node("Content", bg.transform), 10, 0, 10, 0), 8, null, TextAnchor.MiddleCenter);
+                var image = Node("Icon", row.transform).gameObject.AddComponent<Image>();
+                image.sprite = icon;
+                image.color = Ink;
+                image.preserveAspect = true;
+                image.raycastTarget = false;
+                Size(image, Mathf.Round(textSize * 1.15f), Mathf.Round(textSize * 1.15f));
+                holder = row.transform;
+            }
+            var label = Label(holder, text, textSize, Ink, true, TextAlignmentOptions.Center);
+            if (icon == null) Stretch(label.rectTransform, 12, 0, 12, 0);
             Size(bg, width, height, width < 0 ? 1 : -1);
             return b;
         }
@@ -129,10 +144,12 @@ namespace ReadLens.App
         {
             ((Image)b.targetGraphic).color = selected ? Accent : Card;
             b.GetComponentInChildren<TextMeshProUGUI>().color = selected ? OnAccent : Ink;
+            var icon = b.transform.Find("Content/Icon");
+            if (icon != null) icon.GetComponent<Image>().color = selected ? OnAccent : Ink;
         }
 
         // Segmented choice: one option selected at a time. Returns a setter to refresh the visuals.
-        public static Action<int> Choice(Transform parent, string[] options, Action<int> onPick, float textSize = 30)
+        public static Action<int> Choice(Transform parent, string[] options, Action<int> onPick, float textSize = 30, Sprite[] icons = null)
         {
             var row = Layout<HorizontalLayoutGroup>(Node("Choice", parent), 12);
             row.childForceExpandWidth = true;
@@ -141,7 +158,7 @@ namespace ReadLens.App
             for (int i = 0; i < options.Length; i++)
             {
                 int index = i;
-                buttons[i] = Button(row.transform, options[i], () => { Select(index); onPick(index); }, -1, Touch, textSize);
+                buttons[i] = Button(row.transform, options[i], () => { Select(index); onPick(index); }, -1, Touch, textSize, icons?[i]);
             }
             return Select;
         }
@@ -168,6 +185,7 @@ namespace ReadLens.App
                 var dot = Panel(ring.transform, Hex(hex), 36, "Color");
                 var b = ring.gameObject.AddComponent<Button>();
                 b.targetGraphic = dot;
+                ring.gameObject.AddComponent<PressFeedback>();
                 string h = hex;
                 b.onClick.AddListener(() => { Select(h); onPick(h); });
                 rings.Add((hex, ring, dot.rectTransform));

@@ -41,6 +41,9 @@ namespace ReadLens.App
     {
         [SerializeField] PassthroughCameraAccess cameraAccess;
 
+        // No depth for the page: a page held or read on a desk is assumed ~40 cm from the camera.
+        public const float AssumedPageDistance = 0.4f;
+
         readonly ConcurrentQueue<Action> mainThread = new ConcurrentQueue<Action>();
 
         public bool Busy { get; private set; }

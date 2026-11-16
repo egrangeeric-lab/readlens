@@ -22,6 +22,8 @@ namespace ReadLens.App
         [SerializeField] FrameGesture frameGesture;
         [SerializeField] WindowFollow follow;
         [SerializeField] ThumbGestures thumbGestures;
+        [SerializeField] Icons icons;
+        [SerializeField] ScanEffect scan;
 
         const string Sample = "The big dog barely picked a quiet path past the pond.";
         const string Welcome =
@@ -51,6 +53,8 @@ namespace ReadLens.App
         Button pinButton;
         Action refreshSettings = () => { };
         Action<int> selectPreset = _ => { }, selectTab = _ => { };
+        Fade readFade, settingsFade, comfortFade, badgeFade;
+        Slide pageTurn, sentenceTurn;
 
         bool focusOn;
         List<string> sentences = new List<string>();
@@ -76,7 +80,7 @@ namespace ReadLens.App
             BuildBadge();
             refreshSettings();
             frameGesture.OnFramed += OnFramed;
-            frameGesture.Enabled = () => readView.activeSelf && !focusOn;
+            frameGesture.Enabled = () => readFade.Shown && !focusOn;
             thumbGestures.OnSwipe += OnThumbSwipe;
             thumbGestures.OnTap += OnThumbTap;
             if (firstRun) StartComfort();
@@ -85,19 +89,19 @@ namespace ReadLens.App
 
         void Update()
         {
-            bool reading = readView.activeSelf && !focusOn;
+            bool reading = readFade.Shown && !focusOn;
             if (reading && ocr.CameraReady && !ocr.Busy && Time.time >= nextScan)
             {
                 nextScan = Time.time + ScanInterval;
                 ocr.ReadCamera(OnScan, _ => { });
             }
             bool showBadge = reading && detected != null && Time.time - detectedAt < DetectionLifetime;
-            if (badgeCanvas.gameObject.activeSelf != showBadge)
+            if (badgeFade.Shown != showBadge)
             {
-                badgeCanvas.gameObject.SetActive(showBadge);
-                if (showBadge) badgeCanvas.position = badgeTarget;
+                if (!badgeCanvas.gameObject.activeSelf) badgeCanvas.position = badgeTarget;
+                badgeFade.Show(showBadge);
             }
-            if (showBadge)
+            if (badgeCanvas.gameObject.activeSelf)
             {
                 badgeCanvas.position = Vector3.Lerp(badgeCanvas.position, badgeTarget, 1f - Mathf.Exp(-8f * Time.deltaTime));
                 badgeCanvas.rotation = Quaternion.LookRotation(badgeCanvas.position - head.position);
@@ -171,20 +175,21 @@ namespace ReadLens.App
             {
                 detected = r;
                 detectedAt = Time.time;
-                // Badge just under the text, assuming a page held ~40 cm away.
+                // Badge just under the text.
                 var ray = ocr.PixelToRay(r, new Vector2(box.center.x, box.yMax));
-                badgeTarget = ray.GetPoint(0.4f) + Vector3.down * 0.05f;
+                badgeTarget = ray.GetPoint(OcrService.AssumedPageDistance) + Vector3.down * 0.05f;
             }
             if (!captureRequested) return;
             captureRequested = false;
-            AddPage(text);
+            r.Bounds(out var region);
+            AddPage(text, r, region);
         }
 
         void Capture()
         {
             if (detected != null && Time.time - detectedAt < 1.5f)
             {
-                AddPage(detected.ReflowedText);
+                ReadDetected();
                 return;
             }
             if (!ocr.CameraReady)
@@ -199,7 +204,9 @@ namespace ReadLens.App
 
         void ReadDetected()
         {
-            if (detected != null) AddPage(detected.ReflowedText);
+            if (detected == null) return;
+            detected.Bounds(out var region);
+            AddPage(detected.ReflowedText, detected, region);
         }
 
         // Both hands framed an area: read only the lines inside it.
@@ -209,7 +216,8 @@ namespace ReadLens.App
             ocr.ReadCamera(r =>
             {
                 Vector2 pa = ocr.WorldToPixel(r, a), pb = ocr.WorldToPixel(r, b);
-                AddPage(r.TextInside(Rect.MinMaxRect(Mathf.Min(pa.x, pb.x), Mathf.Min(pa.y, pb.y), Mathf.Max(pa.x, pb.x), Mathf.Max(pa.y, pb.y))));
+                var framed = Rect.MinMaxRect(Mathf.Min(pa.x, pb.x), Mathf.Min(pa.y, pb.y), Mathf.Max(pa.x, pb.x), Mathf.Max(pa.y, pb.y));
+                AddPage(r.TextInside(framed), r, framed);
             }, OnOcrError);
         }
 
@@ -220,7 +228,8 @@ namespace ReadLens.App
             status.text = "Sorry, the page couldn't be read. Please try again.";
         }
 
-        void AddPage(string text)
+        // source + pixels: the camera frame and text region the page came from, for the scan effect.
+        void AddPage(string text, OcrResult source, Rect pixels)
         {
             Debug.Log($"[ReadLens] page: {text.Length} chars");
             if (text.Length < MinChars)
@@ -230,21 +239,32 @@ namespace ReadLens.App
             }
             pages.Add(text);
             detected = null;
-            status.text = $"Page {pages.Count} added. Use < and > to turn pages, or try Focus.";
+            status.text = $"Page {pages.Count} added. Use Previous and Next to turn pages, or try Focus.";
             GoToPage(pages.Count - 1);
+            if (pages.Count == 1) pageTurn.Play(1); // the welcome text gives way to the first page
+            PlayScan(source, pixels);
+        }
+
+        // Lights up the page region in the world, then sends it into the window.
+        void PlayScan(OcrResult r, Rect px)
+        {
+            Vector3 At(float x, float y) => ocr.PixelToRay(r, new Vector2(x, y)).GetPoint(OcrService.AssumedPageDistance);
+            scan.Play(At(px.xMin, px.yMin), At(px.xMax, px.yMin), At(px.xMin, px.yMax), At(px.xMax, px.yMax), canvas.position);
         }
 
         void GoToPage(int index)
         {
+            int previous = currentPage;
             currentPage = Mathf.Clamp(index, 0, Mathf.Max(0, pages.Count - 1));
             Render();
             readerScroll.verticalNormalizedPosition = 1; // start each page at the top
+            if (currentPage != previous) pageTurn.Play(currentPage > previous ? 1 : -1);
         }
 
         // Thumb swipe: next/previous sentence in Focus, next/previous page otherwise.
         void OnThumbSwipe(int direction)
         {
-            if (!readView.activeSelf) return;
+            if (!readFade.Shown) return;
             if (focusOn)
             {
                 MoveSentence(direction);
@@ -258,7 +278,7 @@ namespace ReadLens.App
         // Thumb tap: read the detected page without letting go of it.
         void OnThumbTap()
         {
-            if (badgeCanvas.gameObject.activeSelf) ReadDetected();
+            if (badgeFade.Shown) ReadDetected();
         }
 
         void Clear()
@@ -290,8 +310,10 @@ namespace ReadLens.App
 
         void MoveSentence(int delta)
         {
+            int previous = sentence;
             sentence = Mathf.Clamp(sentence + delta, 0, Mathf.Max(0, sentences.Count - 1));
             RenderFocus();
+            if (sentence != previous) sentenceTurn.Play(delta);
         }
 
         void RenderFocus()
@@ -321,23 +343,26 @@ namespace ReadLens.App
             tabs = tabsHolder.gameObject;
             UIKit.Size(tabsHolder, 400, UIKit.Touch);
             UIKit.Layout<HorizontalLayoutGroup>(tabsHolder, 0).childForceExpandWidth = true;
-            selectTab = UIKit.Choice(tabsHolder, new[] { "Read", "Settings" }, ShowTab, 32);
-            pinButton = UIKit.Button(header.transform, "Pin", TogglePin, 140, UIKit.Touch, 30);
+            selectTab = UIKit.Choice(tabsHolder, new[] { "Read", "Settings" }, ShowTab, 32, new[] { icons.read, icons.settings });
+            pinButton = UIKit.Button(header.transform, "Pin", TogglePin, 160, UIKit.Touch, 30, icons.pin);
 
             var body = UIKit.Node("Body", column);
             body.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
             BuildReadView(body);
             BuildSettingsView(body);
             BuildComfortView(body);
+            readFade = Fade.On(readView);
+            settingsFade = Fade.On(settingsView);
+            comfortFade = Fade.On(comfortView);
             selectTab(0);
             ShowTab(0);
         }
 
         void ShowTab(int i)
         {
-            comfortView.SetActive(false);
-            readView.SetActive(i == 0);
-            settingsView.SetActive(i == 1);
+            comfortFade.Show(false);
+            readFade.Show(i == 0);
+            settingsFade.Show(i == 1);
             Render(); // line colours need the visible layout
         }
 
@@ -360,21 +385,23 @@ namespace ReadLens.App
             UIKit.Stretch((RectTransform)readerScroll.transform, 8, 8, 8, 8);
             UIKit.Layout<VerticalLayoutGroup>(content, 0, new RectOffset(32, 32, 28, 48));
             readerText = UIKit.Label(content, "", 46, UIKit.Ink);
+            pageTurn = Slide.On(content); // the scroll view only drives y, so x is free to animate
 
             focusPaper = UIKit.Panel(view, Color.white, 32, "Focus");
             focusPaper.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
             focusText = UIKit.Label(focusPaper.transform, "", 60, UIKit.Ink, false, TextAlignmentOptions.Center);
             focusText.overflowMode = TextOverflowModes.Overflow;
             UIKit.Stretch(focusText.rectTransform, 40, 32, 40, 32);
+            sentenceTurn = Slide.On(focusText.rectTransform);
             focusPaper.gameObject.SetActive(false);
 
             var nav = UIKit.Layout<HorizontalLayoutGroup>(UIKit.Node("Page Navigation", view), 16, null, TextAnchor.MiddleCenter);
             pageNav = nav.gameObject;
             UIKit.Size(nav, -1, UIKit.Touch);
-            previousPage = UIKit.Button(nav.transform, "<", () => GoToPage(currentPage - 1), 200, UIKit.Touch, 48);
+            previousPage = UIKit.Button(nav.transform, "Previous", () => GoToPage(currentPage - 1), 240, UIKit.Touch, 34, icons.previous);
             pageLabel = UIKit.Label(nav.transform, "", 32, UIKit.Ink, true, TextAlignmentOptions.Center);
             UIKit.Size(pageLabel, -1, UIKit.Touch, 1);
-            nextPage = UIKit.Button(nav.transform, ">", () => GoToPage(currentPage + 1), 200, UIKit.Touch, 48);
+            nextPage = UIKit.Button(nav.transform, "Next", () => GoToPage(currentPage + 1), 240, UIKit.Touch, 34, icons.next);
             pageNav.SetActive(false);
 
             status = UIKit.Label(view, Hint, 30, UIKit.Muted);
@@ -383,18 +410,18 @@ namespace ReadLens.App
             var actions = UIKit.Layout<HorizontalLayoutGroup>(UIKit.Node("Actions", view), 16);
             normalActions = actions.gameObject;
             UIKit.Size(actions, -1, 108);
-            UIKit.SetSelected(UIKit.Button(actions.transform, "Capture page", Capture, -1, 108, 38), true);
-            UIKit.Button(actions.transform, "Focus", () => SetFocus(true), 180, 108, 34);
-            UIKit.Button(actions.transform, "Clear", Clear, 160, 108, 34);
+            UIKit.SetSelected(UIKit.Button(actions.transform, "Capture page", Capture, -1, 108, 38, icons.capture), true);
+            UIKit.Button(actions.transform, "Focus", () => SetFocus(true), 180, 108, 34, icons.focus);
+            UIKit.Button(actions.transform, "Clear", Clear, 160, 108, 34, icons.clear);
 
             var focus = UIKit.Layout<HorizontalLayoutGroup>(UIKit.Node("Focus Actions", view), 16, null, TextAnchor.MiddleCenter);
             focusActions = focus.gameObject;
             UIKit.Size(focus, -1, 108);
-            UIKit.Button(focus.transform, "Previous", () => MoveSentence(-1), -1, 108, 36);
+            UIKit.Button(focus.transform, "Previous", () => MoveSentence(-1), -1, 108, 36, icons.previous);
             focusCount = UIKit.Label(focus.transform, "", 32, UIKit.Ink, true, TextAlignmentOptions.Center);
             UIKit.Size(focusCount, 130, 108);
-            UIKit.SetSelected(UIKit.Button(focus.transform, "Next", () => MoveSentence(1), -1, 108, 36), true);
-            UIKit.Button(focus.transform, "Exit", () => SetFocus(false), 140, 108, 32);
+            UIKit.SetSelected(UIKit.Button(focus.transform, "Next", () => MoveSentence(1), -1, 108, 36, icons.next), true);
+            UIKit.Button(focus.transform, "Exit", () => SetFocus(false), 140, 108, 32, icons.exit);
             focusActions.SetActive(false);
         }
 
@@ -442,14 +469,15 @@ namespace ReadLens.App
             var confusableColor = UIKit.Swatches(confusables, Inks, h => { profile.confusableColor = h; Changed(); });
             var languages = new[] { "en", "fr" };
             var language = UIKit.Choice(Section(list, "Split syllables for"), new[] { "English", "French" }, i => { profile.language = languages[i]; Changed(); });
+            UIKit.Choice(Section(list, "Reduce motion"), new[] { "On", "Off" }, i => Motion.Reduced = i == 0)(Motion.Reduced ? 0 : 1);
             var again = Section(list, "Not sure what suits you?");
-            UIKit.Button(again, "Find my comfort again", StartComfort);
+            UIKit.Button(again, "Find my comfort again", StartComfort, -1, UIKit.Touch, 34, icons.comfort);
             UIKit.Button(again, "Reset all settings", () =>
             {
                 profile = presets[0].Clone();
                 refreshSettings();
                 Changed(true);
-            });
+            }, -1, UIKit.Touch, 34, icons.reset);
 
             refreshSettings = () =>
             {
@@ -533,7 +561,7 @@ namespace ReadLens.App
             UIKit.Size(footer, -1, UIKit.Touch);
             comfortProgress = UIKit.Label(footer.transform, "", 30, UIKit.Muted);
             UIKit.Size(comfortProgress, -1, UIKit.Touch, 1);
-            UIKit.Button(footer.transform, "Skip", FinishComfort, 180);
+            UIKit.Button(footer.transform, "Skip", FinishComfort, 180, UIKit.Touch, 34, icons.skip);
             comfortView.SetActive(false);
         }
 
@@ -541,10 +569,10 @@ namespace ReadLens.App
         {
             if (focusOn) SetFocus(false);
             comfortStep = 0;
-            readView.SetActive(false);
-            settingsView.SetActive(false);
+            readFade.Show(false);
+            settingsFade.Show(false);
             tabs.SetActive(false);
-            comfortView.SetActive(true);
+            comfortFade.Show(true);
             ShowComfortStep();
         }
 
@@ -592,9 +620,10 @@ namespace ReadLens.App
             var row = UIKit.Layout<HorizontalLayoutGroup>(pill, 16, new RectOffset(28, 16, 16, 16), TextAnchor.MiddleLeft);
             row.childForceExpandHeight = true;
             UIKit.Size(UIKit.Label(pill.transform, "Page detected\n<size=22>or tap your thumb</size>", 30, UIKit.OnAccent, true), -1, -1, 1);
-            var read = UIKit.Button(pill.transform, "Read this page", ReadDetected, 300, -1, 32);
+            var read = UIKit.Button(pill.transform, "Read this page", ReadDetected, 320, -1, 32, icons.scan);
             ((Image)read.targetGraphic).color = UIKit.Surface;
             badgeCanvas.gameObject.SetActive(false);
+            badgeFade = Fade.On(badgeCanvas.gameObject, 0.2f, pill.transform, 0.85f);
         }
     }
 }

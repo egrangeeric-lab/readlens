@@ -230,11 +230,29 @@ namespace ReadLens.EditorTools
                 ("frameGesture", frame),
                 ("follow", follow),
                 ("thumbGestures", thumbs));
+            WireVisuals(window.GetComponent<ReadLensApp>());
 
             Directory.CreateDirectory(Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
         }
+
+        // Button icons and the world-space capture effect (eye buffer, default layer: not part of the window layer).
+        static void WireVisuals(ReadLensApp app)
+        {
+            var scanGo = new GameObject("Scan Effect", typeof(MeshFilter), typeof(MeshRenderer));
+            scanGo.GetComponent<MeshRenderer>().sharedMaterial = Mat("Scan", "Sprites/Default", Color.white); // vertex colours, premultiplied alpha
+            var scan = scanGo.AddComponent<ScanEffect>();
+            Wire(app, ("scan", scan),
+                ("icons.capture", Icon("photo_camera")), ("icons.focus", Icon("center_focus_strong")), ("icons.clear", Icon("delete")),
+                ("icons.read", Icon("menu_book")), ("icons.settings", Icon("tune")), ("icons.pin", Icon("push_pin")),
+                ("icons.previous", Icon("chevron_left")), ("icons.next", Icon("chevron_right")), ("icons.scan", Icon("document_scanner")),
+                ("icons.comfort", Icon("sentiment_satisfied")), ("icons.reset", Icon("restart_alt")), ("icons.skip", Icon("skip_next")),
+                ("icons.exit", Icon("close")));
+        }
+
+        static Sprite Icon(string name) => AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/ReadLens/Icons/{name}.png")
+            ?? throw new FileNotFoundException("Icon missing or not imported as a sprite: " + name);
 
         static Material Mat(string name, string shader, Color color)
         {
