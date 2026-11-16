@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReadLens demo pages</title>
+<style>
+  /* Looks like a printed sheet: black serif text on white, no UI. Tap or press an arrow key to change page. */
+  html, body { margin: 0; height: 100%; background: #fff; color: #111; }
+  body { font-family: Georgia, "Times New Roman", serif; cursor: pointer; -webkit-user-select: none; user-select: none; }
+  .page { display: none; box-sizing: border-box; min-height: 100%; padding: 6vmin 7vmin; flex-direction: column; }
+  .page.on { display: flex; }
+  /* auto margins centre vertically when there is room, and never clip the title when there isn't */
+  h1 { font-size: clamp(22px, 5.2vmin, 54px); margin: auto 0 0.6em; }
+  p:last-child { margin-bottom: auto; }
+  p { font-size: clamp(18px, 4.1vmin, 42px); line-height: 1.45; margin: 0 0 0.9em; }
+  .hint { position: fixed; bottom: 8px; right: 12px; font: 12px sans-serif; color: #bbb; }
+</style>
+</head>
+<body>
+<section class="page on">
+  <h1>The Paper Boat</h1>
+  <p>Daniel folded a paper boat and placed it in the puddle by the playground. A breeze pushed the boat past a pebble, under a bridge of branches, and round a bend. Daniel jumped and splashed beside it, laughing. "Quick, before it disappears!" shouted his big sister Bella. The boat bobbed and drifted, brave and bright, until it bumped into a duck. The puzzled duck quacked, then paddled away. Daniel picked up his dripping boat and decided it deserved a medal.</p>
+</section>
+<section class="page">
+  <h1>Dad's Bike</h1>
+  <p>Every Sunday, Dad and I ride bikes beside the river. My bike is blue, with a bell and a basket. Dad's bike is old and squeaky, but he says it is dependable. Today we pedalled past a bakery, a library and a busy park. We stopped by the pond to watch the dragonflies. Dad bought two peaches and a bread pudding to share. On the way back, it began to drizzle. We didn't mind. We put up our hoods and pedalled home, dripping and happy.</p>
+</section>
+<section class="page">
+  <h1>The Quiet Planet</h1>
+  <p>Far beyond the brightest stars, there is a quiet planet called Bodaq. Its deep blue oceans bubble, and purple plants bend in the breeze.</p>
+  <p>A curious robot named Pip explores the planet every day. Pip doubles back to study a bridge of pebbles and a peculiar pond that changes colour. Pip records every discovery in a big digital notebook. Probably, one day, people will visit Bodaq. Until then, Pip quietly keeps a diary of the planet, page by page.</p>
+</section>
+<div class="hint" id="hint">1 / 3</div>
+<script>
+  const pages = document.querySelectorAll('.page');
+  let i = 0;
+  function show(n) {
+    pages[i].classList.remove('on');
+    i = (n + pages.length) % pages.length;
+    pages[i].classList.add('on');
+    document.getElementById('hint').textContent = (i + 1) + ' / ' + pages.length;
+  }
+  document.addEventListener('click', e => show(i + (e.clientX < innerWidth / 3 ? -1 : 1)));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') show(i + 1);
+    if (e.key === 'ArrowLeft') show(i - 1);
+  });
+</script>
+</body>
+</html>
