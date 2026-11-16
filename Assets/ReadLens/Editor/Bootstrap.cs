@@ -181,16 +181,23 @@ namespace ReadLens.EditorTools
             layerRenderer.InjectOptionalDoUnderlayAntiAliasing(true);
             layerRenderer.InjectOptionalEnableSuperSampling(true);
 
-            // Grab bar under the window: pinch it (near or with the ray) to move the whole window.
-            var handle = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            handle.name = "Move Handle";
+            // Grab bar under the window, Quest-style: a thin white bar (visual) inside a generous grab zone (collider).
+            // Pinch it, near or with the ray, to move the whole window.
+            var handle = new GameObject("Move Handle");
             handle.transform.SetParent(window.transform, false);
-            handle.transform.localPosition = new Vector3(0f, -WindowPixels.y * UnitsToMeters / 2f - 0.035f, 0f);
-            handle.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
-            handle.transform.localScale = new Vector3(0.022f, 0.08f, 0.022f);
-            handle.GetComponent<Renderer>().sharedMaterial = Mat("Handle", "Standard", new Color(0.86f, 0.88f, 0.92f));
+            handle.transform.localPosition = new Vector3(0f, -WindowPixels.y * UnitsToMeters / 2f - 0.03f, 0f);
+            var zone = handle.AddComponent<BoxCollider>();
+            zone.size = new Vector3(0.16f, 0.04f, 0.03f);
+            var bar = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            bar.name = "Bar";
+            Object.DestroyImmediate(bar.GetComponent<Collider>());
+            bar.transform.SetParent(handle.transform, false);
+            bar.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+            bar.transform.localScale = new Vector3(0.007f, 0.05f, 0.007f); // 10 cm long, 7 mm thick
+            bar.GetComponent<Renderer>().sharedMaterial = Mat("HandleBar", "Sprites/Default", Color.white);
             Oculus.Interaction.Editor.QuickActions.QuickActionsAPI.AddGrabInteraction(handle);
             Oculus.Interaction.Editor.QuickActions.QuickActionsAPI.AddRayGrabInteraction(handle);
+            Wire(handle.AddComponent<HandleVisual>(), ("bar", bar.transform));
             var grabbable = handle.GetComponent<Oculus.Interaction.Grabbable>();
             grabbable.InjectOptionalTargetTransform(window.transform);
             var body = handle.GetComponent<Rigidbody>();
@@ -221,7 +228,7 @@ namespace ReadLens.EditorTools
             Wire(frame, ("outline", outline), ("head", head));
 
             var follow = window.AddComponent<WindowFollow>();
-            Wire(follow, ("head", head), ("grab", grabbable));
+            Wire(follow, ("head", head), ("grab", grabbable), ("surface", surface.transform), ("content", canvasGo.AddComponent<CanvasGroup>()));
 
             Wire(window.AddComponent<ReadLensApp>(),
                 ("canvas", canvas),

@@ -53,7 +53,6 @@ namespace ReadLens.App
         TextMeshProUGUI readerText, previewText, focusText, focusCount, status, contrastLabel, pageLabel;
         Button previousPage, nextPage;
         ScrollRect readerScroll;
-        Button pinButton;
         Action refreshSettings = () => { };
         Action<int> selectPreset = _ => { }, selectTab = _ => { };
         Fade readFade, settingsFade, comfortFade, badgeFade;
@@ -374,16 +373,15 @@ namespace ReadLens.App
             UIKit.Size(tabsHolder, 400, UIKit.Touch);
             UIKit.Layout<HorizontalLayoutGroup>(tabsHolder, 0).childForceExpandWidth = true;
             selectTab = UIKit.Choice(tabsHolder, new[] { "Read", "Settings" }, ShowTab, 32, new[] { icons.read, icons.settings });
-            pinButton = UIKit.Button(header.transform, "Pin", TogglePin, 160, UIKit.Touch, 30, icons.pin);
 
             var body = UIKit.Node("Body", column);
             body.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
             BuildReadView(body);
             BuildSettingsView(body);
             BuildComfortView(body);
-            readFade = Fade.On(readView);
-            settingsFade = Fade.On(settingsView);
-            comfortFade = Fade.On(comfortView);
+            readFade = Fade.On(readView, 0.3f, readView.transform, 0.96f);
+            settingsFade = Fade.On(settingsView, 0.3f, settingsView.transform, 0.96f);
+            comfortFade = Fade.On(comfortView, 0.3f, comfortView.transform, 0.96f);
             selectTab(0);
             ShowTab(0);
         }
@@ -394,13 +392,6 @@ namespace ReadLens.App
             readFade.Show(i == 0);
             settingsFade.Show(i == 1);
             Render(); // line colours need the visible layout
-        }
-
-        void TogglePin()
-        {
-            follow.Pinned = !follow.Pinned;
-            UIKit.SetSelected(pinButton, follow.Pinned);
-            pinButton.GetComponentInChildren<TextMeshProUGUI>().text = follow.Pinned ? "Pinned" : "Pin";
         }
 
         void BuildReadView(Transform body)
@@ -563,6 +554,8 @@ namespace ReadLens.App
 
         TextMeshProUGUI comfortQuestion, comfortProgress;
         (Image card, TextMeshProUGUI text)[] comfortCards;
+        Slide[] comfortSlides;
+        const string ComfortSample = "The big dog picked a quiet path.";
         int comfortStep;
 
         void BuildComfortView(Transform body)
@@ -574,18 +567,24 @@ namespace ReadLens.App
             comfortQuestion = UIKit.Label(view, "", 34, UIKit.Ink, true);
             UIKit.Size(comfortQuestion, -1, 56);
             comfortCards = new (Image, TextMeshProUGUI)[2];
+            comfortSlides = new Slide[2];
             for (int i = 0; i < 2; i++)
             {
                 int choice = i;
-                var card = UIKit.Panel(view, Color.white, 32, i == 0 ? "Option A" : "Option B");
-                card.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
-                var button = card.gameObject.AddComponent<Button>();
-                button.targetGraphic = card;
+                // Dark rim so the two choices read as two separate cards on the light window.
+                var rim = UIKit.Panel(view, UIKit.Muted, 34, i == 0 ? "Option A" : "Option B");
+                rim.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
+                var button = rim.gameObject.AddComponent<Button>();
                 button.onClick.AddListener(() => { UIKit.Clicked(); PickComfort(choice); });
-                var text = UIKit.Label(card.transform, "", 46, UIKit.Ink);
+                rim.gameObject.AddComponent<PressFeedback>();
+                var card = UIKit.Panel(rim.transform, Color.white, 30, "Page");
+                UIKit.Stretch(card.rectTransform, 5, 5, 5, 5);
+                button.targetGraphic = card;
+                var text = UIKit.Label(card.transform, "", 46, UIKit.Ink, false, TextAlignmentOptions.Center);
                 text.overflowMode = TextOverflowModes.Ellipsis;
-                UIKit.Stretch(text.rectTransform, 28, 20, 28, 20);
+                UIKit.Stretch(text.rectTransform, 28, 16, 28, 16);
                 comfortCards[i] = (card, text);
+                comfortSlides[i] = Slide.On(text.rectTransform);
             }
             var footer = UIKit.Layout<HorizontalLayoutGroup>(UIKit.Node("Footer", view), 16, null, TextAnchor.MiddleLeft);
             UIKit.Size(footer, -1, UIKit.Touch);
@@ -615,7 +614,8 @@ namespace ReadLens.App
             {
                 var variant = profile.Clone();
                 (i == 0 ? step.a : step.b)(variant);
-                ProfileRenderer.Apply(comfortCards[i].text, comfortCards[i].card, Sample, variant, FontFor);
+                ProfileRenderer.Apply(comfortCards[i].text, comfortCards[i].card, ComfortSample, variant, FontFor);
+                comfortSlides[i].Play(1);
             }
         }
 

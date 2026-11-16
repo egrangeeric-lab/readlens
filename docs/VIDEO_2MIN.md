@@ -12,7 +12,7 @@ Micro du casque coupé. Son de l'app baissé à ~30 % sous la voix au montage.
 | 5 | 0:55–1:05 | 3 ou 4 pages capturées. Main détendue, pouce glissé sur l'index : la page change. Puis bouton Next. | Thumb swipe = next page | "Pages stay together, like a book. A small thumb swipe turns the page." |
 | 6 | 1:05–1:17 | Bouton Focus : une grande phrase. Deux glissements du pouce. Exit. | Focus: one sentence at a time | "Too much text? Focus shows one sentence at a time." |
 | 7 | 1:17–1:35 | Onglet Settings : changer la police, augmenter l'espacement, colorer par lignes. Choisir un texte jaune clair → avertissement de contraste en rouge → revenir au foncé. | Contrast check built in | "Fonts, spacing, colors by syllable: everything adapts. ReadLens even warns you when colors get hard to read." |
-| 8 | 1:35–1:45 | Saisir la barre sous la fenêtre, la poser à côté du livre, puis Pin. | — | "Put the window wherever you like." |
+| 8 | 1:35–1:45 | Saisir la barre blanche sous la fenêtre (elle s'allume) et poser la fenêtre à côté du livre. | — | "Put the window wherever you like." |
 | 9 | 1:45–1:53 | Plan calme : la feuille et la fenêtre adaptée côte à côte. | On-device · Offline · No photo stored | "Everything runs on the headset. No picture is stored, nothing goes online." |
 | 10 | 1:53–2:00 | Léger recul, fondu vers le carton de fin. | ReadLens — Any page, your way. | "ReadLens. Any page, your way." |
 

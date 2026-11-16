@@ -29,6 +29,14 @@ namespace ReadLens.App
 
         public static float EaseOut(float t) => 1f - (1f - t) * (1f - t);
 
+        // Overshoots slightly before settling: reads as "opening" rather than just appearing.
+        public static float EaseOutBack(float t)
+        {
+            const float c = 1.4f;
+            float u = t - 1f;
+            return 1f + (c + 1f) * u * u * u + c * u * u;
+        }
+
         // Advances 0..1 progress; with reduced motion it completes at once.
         public static float Step(float t, float duration) => Reduced ? 1f : Mathf.Min(1f, t + Time.unscaledDeltaTime / duration);
     }
@@ -82,7 +90,7 @@ namespace ReadLens.App
     // Slides content in from the side a page was turned to, fading it in.
     public class Slide : MonoBehaviour
     {
-        const float Distance = 90f, Duration = 0.22f;
+        const float Distance = 240f, Duration = 0.32f;
         RectTransform rect;
         CanvasGroup group;
         float from, progress = 1f;
@@ -112,7 +120,7 @@ namespace ReadLens.App
             var p = rect.anchoredPosition;
             p.x = from * (1f - k);
             rect.anchoredPosition = p;
-            group.alpha = Mathf.Lerp(0.2f, 1f, k);
+            group.alpha = k;
             if (progress >= 1f) enabled = false;
         }
     }
@@ -120,7 +128,7 @@ namespace ReadLens.App
     // Press feedback: the control sinks a little while held (works with poke and ray: both send uGUI pointer events).
     public class PressFeedback : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     {
-        const float Pressed = 0.94f, Duration = 0.12f;
+        const float Pressed = 0.92f, Duration = 0.12f;
         Selectable selectable;
         float from = 1f, to = 1f, progress = 1f;
 

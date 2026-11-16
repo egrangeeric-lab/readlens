@@ -64,7 +64,7 @@ ReadLens is hands-only end to end; no controller is ever needed.
 - **Live page detection + thumb tap.** While the Read tab is open, ReadLens reads a passthrough camera frame about once per second on-device. When it finds enough text, a "Page detected" badge appears just under the text in the real world (OCR box projected through the frame's camera pose). The child can poke "Read this page", or keep both hands on the book and tap the thumb against the index finger (Meta microgesture `ThumbTap` via `OVRHand.GetMicrogestureType`).
 - **Photographer frame.** Both hands make an L shape (index and thumb out, other fingers folded) around the text. We detect it from Interaction SDK hand joints using ratios of palm length, not centimetres, so small hands work. An outline brightens as the pose is held; after 0.8 s the area is captured and only the OCR lines whose centre falls inside the frame are kept.
 - **Thumb swipe to turn pages.** Microgesture `SwipeLeft` / `SwipeRight` turns pages, or moves sentence by sentence in Focus mode. The interaction rig's snap-turn locomotion is disabled so the same gesture never rotates the user.
-- **Grab to move, Pin to stay.** A grab bar under the window works with a near pinch or a ray grab. If the window stays out of view for 2.5 s it glides back in front of the reader; Pin turns that off. Grabbing always wins.
+- **Grab to move.** A thin Quest-style bar under the window lights up when a hand comes near; grab it with a near pinch or a ray grab. If the window stays out of view for 2.5 s it glides back in front of the reader. Grabbing always wins.
 - **Seated by design.** Everything happens within arm's reach of a desk or a book on your lap.
 
 ## What excites you about the future of VR?
@@ -98,4 +98,4 @@ unity, c#, meta-xr-sdk, meta-interaction-sdk, mruk, passthrough-camera-api, hand
 - [ ] Video link (YouTube or Vimeo, public) and the Competition release channel invite URL.
 - [ ] Screenshots / thumbnail for the gallery (captured in-headset).
 - [ ] If pages-across-sessions persistence, sounds or the scan effect land before the code freeze, add one line about them under "What it does"; if not, leave the text as it is.
-- [ ] Note for the team: the judging criteria mention MRUK scene understanding (anchoring to planes/surfaces). The current build uses MRUK only for camera access; the window follows the head and can be pinned, but is not anchored to a detected table. Do not claim table anchoring unless it ships.
+- [ ] Note for the team: the judging criteria mention MRUK scene understanding (anchoring to planes/surfaces). The current build uses MRUK only for camera access; the window comes back in front of the reader when lost, but is not anchored to a detected table. Do not claim table anchoring unless it ships.

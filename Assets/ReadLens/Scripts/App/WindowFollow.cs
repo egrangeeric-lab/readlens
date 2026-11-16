@@ -4,17 +4,17 @@ using UnityEngine;
 
 namespace ReadLens.App
 {
-    // Keeps the window findable: if it stays out of view for a moment it glides back in front of the reader.
-    // Pinned windows never move on their own. Grabbing always wins.
+    // Keeps the window findable: it opens in front of the reader, and if it stays out of view for a moment
+    // it glides back in front. Grabbing always wins.
     public class WindowFollow : MonoBehaviour
     {
         [SerializeField] Transform head;
         [SerializeField] PointableElement grab;
+        [SerializeField] Transform surface;   // what the eyes see (compositor layer mesh)
+        [SerializeField] CanvasGroup content; // window UI, faded in at launch
         [SerializeField] float distance = 0.5f, drop = 0.12f, tilt = 12f;
 
-        public bool Pinned;
-
-        const float LostAngle = 55f, LostSeconds = 2.5f, FarDistance = 1.5f;
+        const float LostAngle = 55f, LostSeconds = 2.5f, FarDistance = 1.5f, OpenSeconds = 0.6f;
         float lostFor;
         bool moving;
         Vector3 targetPos;
@@ -22,10 +22,31 @@ namespace ReadLens.App
 
         IEnumerator Start()
         {
+            content.alpha = 0f;
             // The head pose is only valid after tracking starts.
             for (int i = 0; i < 10; i++) yield return null;
             ComputeTarget();
             transform.SetPositionAndRotation(targetPos, targetRot);
+            yield return Open();
+        }
+
+        // The window unfolds: grows from 70% with a slight overshoot, rises a little and fades in.
+        // Only the visible surface is scaled: scaling the canvas would resize its render texture every frame.
+        IEnumerator Open()
+        {
+            var restPos = surface.localPosition;
+            for (float t = 0f; t < 1f;)
+            {
+                t = Motion.Step(t, OpenSeconds);
+                float k = Motion.EaseOutBack(t);
+                surface.localScale = Vector3.one * Mathf.LerpUnclamped(0.7f, 1f, k);
+                surface.localPosition = restPos + Vector3.down * (0.04f * (1f - Motion.EaseOut(t)));
+                content.alpha = Motion.EaseOut(t);
+                yield return null;
+            }
+            surface.localScale = Vector3.one;
+            surface.localPosition = restPos;
+            content.alpha = 1f;
         }
 
         public void BringHere()
@@ -42,7 +63,7 @@ namespace ReadLens.App
                 lostFor = 0;
                 return;
             }
-            if (!Pinned && !moving)
+            if (!moving)
             {
                 var toWindow = transform.position - head.position;
                 bool lost = Vector3.Angle(head.forward, toWindow) > LostAngle || toWindow.magnitude > FarDistance;

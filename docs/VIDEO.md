@@ -28,7 +28,7 @@ Pages used: **Page A** "The Paper Boat", **Page B** "Dad's Bike", **Page C** "Th
 | 10 | 1:32–1:44 | Window shows the last page ("Page 4 of 4" if shots 4, 7, 8, 9 were filmed in one session). Loosely close the hand, swipe thumb left along the index finger: page 2. Swipe right: page 3. Keep the hand low and visible. | "Thumb swipe = turn the page" | "Your pages stay together, like a book. Slide your thumb to turn them. Your hands can stay on the desk." |
 | 11 | 1:44–1:58 | Poke "Focus". One large sentence. Thumb swipe right twice to go sentence by sentence. Poke "Exit". | "Focus: one sentence at a time" | "Too much text? Focus shows one sentence at a time, big and calm." |
 | 12 | 1:58–2:12 | Settings tab. Change text size with +, switch colouring from Syllables to Lines, then pick a light yellow text colour on a cream page: the contrast line turns to a bold warning. Pick dark text again: warning goes. | "Built-in contrast check (WCAG)" | "Everything can change later: font, spacing, colours. ReadLens warns you when colours get hard to read." |
-| 13 | 2:12–2:20 | Grab the bar under the window and move it next to the book. Poke "Pin". Turn the head away and back: window stays. | — | "Move the window where you like, and pin it." |
+| 13 | 2:12–2:20 | Grab the bar under the window (it lights up) and move it next to the book. | — | "Move the window where you like." |
 | 14 | 2:20–2:26 | Back to Page A in passthrough with the adapted window beside it. Hold still. | "On-device. No photo stored. Nothing leaves the headset." | "Text is read on the headset. No picture is saved or sent." |
 | 15 | 2:26–2:32 | Slow pull-back: the desk, the paper, the window. Fade to end card. | "ReadLens. Any page, your way." + "Meta Quest 3 / 3S" | "ReadLens. Any page, your way." |
 
@@ -68,7 +68,7 @@ Short sentences, one idea each. Pause at each line break.
 >
 > Everything can change later: font, spacing, colours. ReadLens warns you when colours get hard to read.
 >
-> Move the window where you like, and pin it.
+> Move the window where you like.
 >
 > Text is read on the headset. No picture is saved or sent.
 >
