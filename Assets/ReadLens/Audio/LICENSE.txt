@@ -1,0 +1,7 @@
+Sound effects copied from the Meta XR Interaction SDK samples (com.meta.xr.sdk.interaction, Runtime/Sample/Audio/Content),
+used under the Oculus SDK License Agreement: https://developer.oculus.com/licenses/oculussdk/
+
+Click.wav      <- Interaction_BasicPoke_ButtonPress.wav
+PageAdded.wav  <- Interaction_CameraTool_Shutter_01.wav
+PageTurn.wav   <- Interaction_BasicGestures_SwipeForward_01.wav
+NoText.wav     <- Interaction_Locomotion_Declined.wav

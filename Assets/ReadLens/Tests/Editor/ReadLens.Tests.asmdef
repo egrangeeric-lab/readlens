@@ -1,6 +1,6 @@
 {
     "name": "ReadLens.Tests",
-    "references": ["ReadLens.Core", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
+    "references": ["ReadLens.Core", "ReadLens.App","UnityEngine.TestRunner", "UnityEditor.TestRunner"],
     "includePlatforms": ["Editor"],
     "overrideReferences": true,
     "precompiledReferences": ["nunit.framework.dll"],

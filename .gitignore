@@ -17,3 +17,5 @@
 .utmp/
 .vscode/
 /Assets/Resources/PerformanceTestRun*
+.claude/
+/Assets/StreamingAssets/
