@@ -113,9 +113,10 @@ namespace ReadLens.EditorTools
             AssetDatabase.ImportPackage(pkg, false);
         }
 
-        // Window: 48 x 57.5 cm (1 UI unit = 0.5 mm), 62 cm away, slightly below eye level and tilted like a book stand.
-        static readonly Vector2 WindowPixels = new Vector2(960, 1150);
-        const float UnitsToMeters = 0.0005f;
+        // Window: 36 x 40 cm (1 UI unit = 0.4 mm), 50 cm away, slightly below eye level and tilted like a book stand.
+        static readonly Vector2 WindowPixels = new Vector2(900, 1000);
+        const float UnitsToMeters = 0.0004f;
+        const int UILayer = 5;
 
         static void CreateScene()
         {
@@ -134,66 +135,138 @@ namespace ReadLens.EditorTools
             {
                 cam.clearFlags = CameraClearFlags.SolidColor;
                 cam.backgroundColor = Color.clear; // passthrough shows behind the window
+                cam.cullingMask &= ~(1 << UILayer); // the window reaches the eyes through its compositor layer
             }
             Oculus.Interaction.OVR.Editor.QuickActions.OVRQuickActionsAPI.AddOVRInteractionRig();
+            var head = rig.transform.Find("TrackingSpace/CenterEyeAnchor");
+            // The interaction rig ships with locomotion (thumb-swipe snap turn). In a seated MR reading app
+            // turning only makes the window jump sideways, so it is off and the thumb swipe turns pages instead.
+            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (t.name == "Locomotor") t.gameObject.SetActive(false);
+            var thumbHands = new GameObject("Thumb Gestures");
+            var leftHand = HandSource(rig.transform.Find("TrackingSpace/LeftHandAnchor"), OVRHand.Hand.HandLeft);
+            var rightHand = HandSource(rig.transform.Find("TrackingSpace/RightHandAnchor"), OVRHand.Hand.HandRight);
+            var thumbs = thumbHands.AddComponent<ThumbGestures>();
+            Wire(thumbs, ("left", leftHand), ("right", rightHand));
 
             var window = new GameObject("ReadLens Window");
-            window.transform.SetPositionAndRotation(new Vector3(0f, -0.1f, 0.62f), Quaternion.Euler(12f, 0f, 0f));
+            window.transform.SetPositionAndRotation(new Vector3(0f, -0.12f, 0.5f), Quaternion.Euler(12f, 0f, 0f));
 
-            var canvasGo = new GameObject("Canvas", typeof(Canvas));
+            // The canvas renders into a texture (2x supersampled) shown as a compositor layer:
+            // the headset samples it once at display resolution, so text stays sharp.
+            var canvasGo = new GameObject("Canvas", typeof(Canvas)) { layer = UILayer };
             canvasGo.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
             var canvas = (RectTransform)canvasGo.transform;
             canvas.SetParent(window.transform, false);
             canvas.sizeDelta = WindowPixels;
             canvas.localScale = Vector3.one * UnitsToMeters;
+            var renderTexture = canvasGo.AddComponent<Oculus.Interaction.UnityCanvas.CanvasRenderTexture>();
+            renderTexture.InjectAllCanvasRenderTexture(canvasGo.GetComponent<Canvas>(), Mathf.RoundToInt(1f / UnitsToMeters), 2, 1 << UILayer, false);
             Oculus.Interaction.Editor.QuickActions.QuickActionsAPI.AddPokeCanvasInteraction(canvasGo);
             Oculus.Interaction.Editor.QuickActions.QuickActionsAPI.AddRayCanvasInteraction(canvasGo);
+
+            var surface = new GameObject("Window Surface", typeof(MeshFilter), typeof(MeshRenderer));
+            surface.transform.SetParent(window.transform, false);
+            var rect = surface.AddComponent<Oculus.Interaction.UnityCanvas.CanvasRect>();
+            rect.InjectAllCanvasRect(renderTexture, surface.GetComponent<MeshFilter>());
+            var layerRenderer = surface.AddComponent<Oculus.Interaction.UnityCanvas.OVRCanvasMeshRenderer>();
+            layerRenderer.InjectAllOVRCanvasMeshRenderer(renderTexture, surface.GetComponent<MeshRenderer>(), rect);
+            // Underlay: hands drawn in the eye buffer stay visible in front of the window.
+            layerRenderer.InjectOptionalRenderingMode(Oculus.Interaction.UnityCanvas.OVRRenderingMode.Underlay);
+            layerRenderer.InjectOptionalDoUnderlayAntiAliasing(true);
+            layerRenderer.InjectOptionalEnableSuperSampling(true);
 
             // Grab bar under the window: pinch it (near or with the ray) to move the whole window.
             var handle = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             handle.name = "Move Handle";
             handle.transform.SetParent(window.transform, false);
-            handle.transform.localPosition = new Vector3(0f, -WindowPixels.y * UnitsToMeters / 2f - 0.045f, 0f);
+            handle.transform.localPosition = new Vector3(0f, -WindowPixels.y * UnitsToMeters / 2f - 0.035f, 0f);
             handle.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
-            handle.transform.localScale = new Vector3(0.024f, 0.09f, 0.024f);
-            handle.GetComponent<Renderer>().sharedMaterial = HandleMaterial();
+            handle.transform.localScale = new Vector3(0.022f, 0.08f, 0.022f);
+            handle.GetComponent<Renderer>().sharedMaterial = Mat("Handle", "Standard", new Color(0.86f, 0.88f, 0.92f));
             Oculus.Interaction.Editor.QuickActions.QuickActionsAPI.AddGrabInteraction(handle);
             Oculus.Interaction.Editor.QuickActions.QuickActionsAPI.AddRayGrabInteraction(handle);
-            handle.GetComponent<Oculus.Interaction.Grabbable>().InjectOptionalTargetTransform(window.transform);
+            var grabbable = handle.GetComponent<Oculus.Interaction.Grabbable>();
+            grabbable.InjectOptionalTargetTransform(window.transform);
             var body = handle.GetComponent<Rigidbody>();
             body.isKinematic = true;
             body.useGravity = false;
 
+            // "Page detected" suggestion: a small separate canvas that floats under the detected text.
+            var badgeGo = new GameObject("Page Detected Badge", typeof(Canvas));
+            badgeGo.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
+            var badge = (RectTransform)badgeGo.transform;
+            badge.sizeDelta = new Vector2(640, 130);
+            badge.localScale = Vector3.one * UnitsToMeters;
+            Oculus.Interaction.Editor.QuickActions.QuickActionsAPI.AddPokeCanvasInteraction(badgeGo);
+            Oculus.Interaction.Editor.QuickActions.QuickActionsAPI.AddRayCanvasInteraction(badgeGo);
+
+            var outlineGo = new GameObject("Frame Outline", typeof(LineRenderer));
+            var outline = outlineGo.GetComponent<LineRenderer>();
+            outline.sharedMaterial = Mat("Outline", "Sprites/Default", Color.white);
+            outline.useWorldSpace = true;
+            outline.enabled = false;
+
             var services = new GameObject("Services");
             var cameraAccess = services.AddComponent<Meta.XR.PassthroughCameraAccess>();
             var ocr = services.AddComponent<OcrService>();
+            Wire(ocr, ("cameraAccess", cameraAccess));
+            services.AddComponent<DisplayQuality>();
+            var frame = services.AddComponent<FrameGesture>();
+            Wire(frame, ("outline", outline), ("head", head));
 
-            var app = window.AddComponent<ReadLensApp>();
-            var so = new SerializedObject(app);
-            so.FindProperty("canvas").objectReferenceValue = canvas;
-            so.FindProperty("openDyslexic").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Font>("Assets/ReadLens/Fonts/OpenDyslexic-Regular.otf");
-            so.FindProperty("atkinson").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Font>("Assets/ReadLens/Fonts/AtkinsonHyperlegible-Regular.ttf");
-            so.FindProperty("atkinsonBold").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Font>("Assets/ReadLens/Fonts/AtkinsonHyperlegible-Bold.ttf");
-            so.FindProperty("classic").objectReferenceValue = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset");
-            so.FindProperty("cameraAccess").objectReferenceValue = cameraAccess;
-            so.FindProperty("ocr").objectReferenceValue = ocr;
-            so.ApplyModifiedPropertiesWithoutUndo();
+            var follow = window.AddComponent<WindowFollow>();
+            Wire(follow, ("head", head), ("grab", grabbable));
+
+            Wire(window.AddComponent<ReadLensApp>(),
+                ("canvas", canvas),
+                ("badgeCanvas", badge),
+                ("head", head),
+                ("openDyslexic", AssetDatabase.LoadAssetAtPath<Font>("Assets/ReadLens/Fonts/OpenDyslexic-Regular.otf")),
+                ("atkinson", AssetDatabase.LoadAssetAtPath<Font>("Assets/ReadLens/Fonts/AtkinsonHyperlegible-Regular.ttf")),
+                ("atkinsonBold", AssetDatabase.LoadAssetAtPath<Font>("Assets/ReadLens/Fonts/AtkinsonHyperlegible-Bold.ttf")),
+                ("classic", AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset")),
+                ("ocr", ocr),
+                ("frameGesture", frame),
+                ("follow", follow),
+                ("thumbGestures", thumbs));
 
             Directory.CreateDirectory(Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
         }
 
-        static Material HandleMaterial()
+        static Material Mat(string name, string shader, Color color)
         {
-            const string path = "Assets/ReadLens/Materials/Handle.mat";
+            var path = $"Assets/ReadLens/Materials/{name}.mat";
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (mat != null) return mat;
             Directory.CreateDirectory(Path.GetDirectoryName(path));
-            mat = new Material(Shader.Find("Standard")) { color = new Color(0.86f, 0.88f, 0.92f) };
-            mat.SetFloat("_Glossiness", 0.6f);
+            mat = new Material(Shader.Find(shader)) { color = color };
             AssetDatabase.CreateAsset(mat, path);
             return mat;
+        }
+
+        static OVRHand HandSource(Transform anchor, OVRHand.Hand type)
+        {
+            var go = new GameObject(type + " Microgestures");
+            go.transform.SetParent(anchor, false);
+            var hand = go.AddComponent<OVRHand>();
+            var so = new SerializedObject(hand);
+            so.FindProperty("HandType").intValue = (int)type;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return hand;
+        }
+
+        static void Wire(Object target, params (string field, Object value)[] refs)
+        {
+            var so = new SerializedObject(target);
+            foreach (var (field, value) in refs)
+            {
+                var prop = so.FindProperty(field) ?? throw new System.ArgumentException($"{target.GetType().Name}.{field} not found");
+                prop.objectReferenceValue = value;
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
     }
 }

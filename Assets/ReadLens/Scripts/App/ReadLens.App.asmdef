@@ -1,5 +1,5 @@
 {
     "name": "ReadLens.App",
     "rootNamespace": "ReadLens.App",
-    "references": ["ReadLens.Core", "Unity.TextMeshPro", "UnityEngine.UI", "meta.xr.mrutilitykit"]
+    "references": ["ReadLens.Core", "Unity.TextMeshPro", "UnityEngine.UI", "meta.xr.mrutilitykit", "Oculus.Interaction", "Oculus.VR"]
 }

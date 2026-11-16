@@ -11,7 +11,7 @@ namespace ReadLens.Core
         public string name = "Custom";
         public string language = "en";        // "en" or "fr": drives syllable rules
         public string font = "OpenDyslexic";
-        public float fontSize = 36f;
+        public float fontSize = 46f;
         public float letterSpacing = 4f;      // TMP characterSpacing (em/100)
         public float wordSpacing = 20f;       // TMP wordSpacing (em/100)
         public float lineSpacing = 40f;       // TMP lineSpacing (em/100)
@@ -20,7 +20,7 @@ namespace ReadLens.Core
         public ColorMode colorMode = ColorMode.Syllables;
         public string[] palette = { "#1F5FBF", "#C0392B" };
         public bool highlightConfusables = true;
-        public string confusableColor = "#1E8C4E";
+        public string confusableColor = "#13723D";
 
         public static readonly string[] Fonts = { "OpenDyslexic", "Atkinson", "Classic" };
 
@@ -35,7 +35,7 @@ namespace ReadLens.Core
         {
             new ReadingProfile { name = "Syllables" },
             new ReadingProfile { name = "Calm", colorMode = ColorMode.Lines, palette = new[] { "#1E1E1E", "#3B5998" }, highlightConfusables = false },
-            new ReadingProfile { name = "Big & airy", fontSize = 44f, letterSpacing = 8f, wordSpacing = 35f, lineSpacing = 70f, colorMode = ColorMode.Words },
+            new ReadingProfile { name = "Big & airy", fontSize = 56f, letterSpacing = 8f, wordSpacing = 35f, lineSpacing = 70f, colorMode = ColorMode.Words },
         };
     }
 }

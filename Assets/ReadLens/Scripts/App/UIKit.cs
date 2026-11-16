@@ -7,16 +7,17 @@ using UnityEngine.UI;
 
 namespace ReadLens.App
 {
-    // Small runtime UI toolkit: rounded panels, big high-contrast controls. 1 UI unit = 0.5 mm in the headset.
+    // Small runtime UI toolkit: rounded panels, big high-contrast controls. 1 UI unit = 0.4 mm in the headset.
     public static class UIKit
     {
         public static readonly Color Ink = Hex("#14161A");
         public static readonly Color Muted = Hex("#4A5160");
-        public static readonly Color Surface = Hex("#FFFFFF");
-        public static readonly Color Card = Hex("#EEF1F6");
+        public static readonly Color Surface = Hex("#F7F5F0"); // warm off-white: less glare than pure white in the headset
+        public static readonly Color Card = Hex("#E6E9EF");
+        public static readonly Color Warning = Hex("#9A2A1F");
         public static readonly Color Accent = Hex("#1B3A8A");
         public static readonly Color OnAccent = Hex("#FFFFFF");
-        public const float Touch = 88f; // 4.4 cm targets: easy to poke, readable from afar
+        public const float Touch = 96f; // 3.8 cm targets (1 unit = 0.4 mm): easy to poke, readable from afar
 
         public static TMP_FontAsset Font; // UI font (Atkinson Hyperlegible: designed for low vision)
         public static TMP_FontAsset FontBold;
@@ -50,6 +51,7 @@ namespace ReadLens.App
         public static RectTransform Node(string name, Transform parent)
         {
             var go = new GameObject(name, typeof(RectTransform));
+            go.layer = parent.gameObject.layer; // the window canvas renders only its own layer
             go.transform.SetParent(parent, false);
             return (RectTransform)go.transform;
         }

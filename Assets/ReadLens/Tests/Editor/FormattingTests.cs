@@ -60,6 +60,28 @@ namespace ReadLens.Tests
         }
 
         [Test]
+        public void ContrastMatchesWcag()
+        {
+            Assert.AreEqual(21.0, Contrast.Ratio("#000000", "#FFFFFF"), 0.01);
+            Assert.AreEqual(1.0, Contrast.Ratio("#777777", "#777777"), 0.01);
+            Assert.AreEqual(4.48, Contrast.Ratio("#777777", "#FFFFFF"), 0.01);
+        }
+
+        [Test]
+        public void EveryPresetIsReadable()
+        {
+            foreach (var p in ReadingProfile.Presets())
+                Assert.GreaterOrEqual(Contrast.Worst(p), Contrast.Minimum, p.name);
+        }
+
+        [Test]
+        public void SplitsSentences()
+        {
+            var s = Sentences.Split("Mr. Fox ran. Did he win? Yes!\nThe end \"he said.\" J. K. Rowling wrote it");
+            CollectionAssert.AreEqual(new[] { "Mr. Fox ran.", "Did he win?", "Yes!", "The end \"he said.\"", "J. K. Rowling wrote it" }, s);
+        }
+
+        [Test]
         public void PresetCloneIsIndependent()
         {
             var a = ReadingProfile.Presets()[0];
