@@ -22,6 +22,8 @@ namespace ReadLens.App
         [SerializeField] FrameGesture frameGesture;
         [SerializeField] WindowFollow follow;
         [SerializeField] ThumbGestures thumbGestures;
+        [SerializeField] AudioSource sfx;
+        [SerializeField] AudioClip clickSound, pageAddedSound, pageTurnSound, noTextSound;
 
         const string Sample = "The big dog barely picked a quiet path past the pond.";
         const string Welcome =
@@ -41,6 +43,7 @@ namespace ReadLens.App
         string profilePath;
         readonly List<string> pages = new List<string>();
         int currentPage;
+        string documentPath;
         readonly Dictionary<string, TMP_FontAsset> fonts = new Dictionary<string, TMP_FontAsset>();
 
         GameObject readView, settingsView, comfortView, tabs, normalActions, focusActions, pageNav;
@@ -72,6 +75,11 @@ namespace ReadLens.App
             profilePath = Path.Combine(Application.persistentDataPath, "profile.json");
             bool firstRun = !File.Exists(profilePath);
             profile = LoadProfile();
+            documentPath = Path.Combine(Application.persistentDataPath, "document.json");
+            var saved = SavedDocument.Load(documentPath);
+            pages.AddRange(saved.pages);
+            currentPage = saved.currentPage;
+            UIKit.Clicked = () => Play(clickSound);
             Build();
             BuildBadge();
             refreshSettings();
@@ -103,6 +111,15 @@ namespace ReadLens.App
                 badgeCanvas.rotation = Quaternion.LookRotation(badgeCanvas.position - head.position);
             }
         }
+
+        void OnApplicationPause(bool paused)
+        {
+            if (paused) SaveDocument();
+        }
+
+        void SaveDocument() => new SavedDocument { pages = pages, currentPage = currentPage }.Save(documentPath);
+
+        void Play(AudioClip clip) => sfx.PlayOneShot(clip);
 
         TMP_FontAsset Dynamic(Font f)
         {
@@ -218,6 +235,7 @@ namespace ReadLens.App
             captureRequested = false;
             Debug.LogWarning("[ReadLens] OCR failed: " + error);
             status.text = "Sorry, the page couldn't be read. Please try again.";
+            Play(noTextSound);
         }
 
         void AddPage(string text)
@@ -226,9 +244,11 @@ namespace ReadLens.App
             if (text.Length < MinChars)
             {
                 status.text = "No text found. Hold the page a little closer, in good light, and try again.";
+                Play(noTextSound);
                 return;
             }
             pages.Add(text);
+            Play(pageAddedSound);
             detected = null;
             status.text = $"Page {pages.Count} added. Use < and > to turn pages, or try Focus.";
             GoToPage(pages.Count - 1);
@@ -239,6 +259,14 @@ namespace ReadLens.App
             currentPage = Mathf.Clamp(index, 0, Mathf.Max(0, pages.Count - 1));
             Render();
             readerScroll.verticalNormalizedPosition = 1; // start each page at the top
+            SaveDocument();
+        }
+
+        void TurnPage(int delta)
+        {
+            int before = currentPage;
+            GoToPage(currentPage + delta);
+            if (currentPage != before) Play(pageTurnSound);
         }
 
         // Thumb swipe: next/previous sentence in Focus, next/previous page otherwise.
@@ -251,7 +279,7 @@ namespace ReadLens.App
                 return;
             }
             if (pages.Count < 2) return;
-            GoToPage(currentPage + direction);
+            TurnPage(direction);
             status.text = $"Page {currentPage + 1} of {pages.Count}";
         }
 
@@ -267,6 +295,7 @@ namespace ReadLens.App
             currentPage = 0;
             status.text = Hint;
             Render();
+            SaveDocument();
         }
 
         // ---------- focus mode ----------
@@ -290,7 +319,9 @@ namespace ReadLens.App
 
         void MoveSentence(int delta)
         {
+            int before = sentence;
             sentence = Mathf.Clamp(sentence + delta, 0, Mathf.Max(0, sentences.Count - 1));
+            if (sentence != before) Play(pageTurnSound);
             RenderFocus();
         }
 
@@ -371,10 +402,10 @@ namespace ReadLens.App
             var nav = UIKit.Layout<HorizontalLayoutGroup>(UIKit.Node("Page Navigation", view), 16, null, TextAnchor.MiddleCenter);
             pageNav = nav.gameObject;
             UIKit.Size(nav, -1, UIKit.Touch);
-            previousPage = UIKit.Button(nav.transform, "<", () => GoToPage(currentPage - 1), 200, UIKit.Touch, 48);
+            previousPage = UIKit.Button(nav.transform, "<", () => TurnPage(-1), 200, UIKit.Touch, 48);
             pageLabel = UIKit.Label(nav.transform, "", 32, UIKit.Ink, true, TextAlignmentOptions.Center);
             UIKit.Size(pageLabel, -1, UIKit.Touch, 1);
-            nextPage = UIKit.Button(nav.transform, ">", () => GoToPage(currentPage + 1), 200, UIKit.Touch, 48);
+            nextPage = UIKit.Button(nav.transform, ">", () => TurnPage(1), 200, UIKit.Touch, 48);
             pageNav.SetActive(false);
 
             status = UIKit.Label(view, Hint, 30, UIKit.Muted);
@@ -523,7 +554,7 @@ namespace ReadLens.App
                 card.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
                 var button = card.gameObject.AddComponent<Button>();
                 button.targetGraphic = card;
-                button.onClick.AddListener(() => PickComfort(choice));
+                button.onClick.AddListener(() => { UIKit.Clicked(); PickComfort(choice); });
                 var text = UIKit.Label(card.transform, "", 46, UIKit.Ink);
                 text.overflowMode = TextOverflowModes.Ellipsis;
                 UIKit.Stretch(text.rectTransform, 28, 20, 28, 20);

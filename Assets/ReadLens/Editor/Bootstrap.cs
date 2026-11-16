@@ -50,7 +50,12 @@ namespace ReadLens.EditorTools
         {
             CreateScene(); // always regenerated: the scene is an output of this script, not hand-edited
             Directory.CreateDirectory("Builds");
-            var report = BuildPipeline.BuildPlayer(new[] { ScenePath }, ApkPath, BuildTarget.Android, BuildOptions.None);
+            PlayerSettings.bundleVersion = "1.0.0";
+            PlayerSettings.Android.bundleVersionCode = ReadLens.Core.BuildVersion.Code(System.DateTime.UtcNow);
+            ReleaseSigning.Apply();
+            UnityEditor.Build.Reporting.BuildReport report;
+            try { report = BuildPipeline.BuildPlayer(new[] { ScenePath }, ApkPath, BuildTarget.Android, BuildOptions.None); }
+            finally { ReleaseSigning.Clear(); }
             Debug.Log($"[ReadLens] Build {report.summary.result}, {report.summary.totalSize / 1e6:F1} MB");
             if (Application.isBatchMode && report.summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
                 EditorApplication.Exit(1);
@@ -229,7 +234,12 @@ namespace ReadLens.EditorTools
                 ("ocr", ocr),
                 ("frameGesture", frame),
                 ("follow", follow),
-                ("thumbGestures", thumbs));
+                ("thumbGestures", thumbs),
+                ("sfx", Sfx(window)),
+                ("clickSound", Clip("Click")),
+                ("pageAddedSound", Clip("PageAdded")),
+                ("pageTurnSound", Clip("PageTurn")),
+                ("noTextSound", Clip("NoText")));
 
             Directory.CreateDirectory(Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -246,6 +256,19 @@ namespace ReadLens.EditorTools
             AssetDatabase.CreateAsset(mat, path);
             return mat;
         }
+
+        // One quiet 2D source for UI feedback sounds.
+        static AudioSource Sfx(GameObject host)
+        {
+            var source = host.AddComponent<AudioSource>();
+            source.playOnAwake = false;
+            source.spatialBlend = 0f;
+            source.volume = 0.4f;
+            return source;
+        }
+
+        static AudioClip Clip(string name) =>
+            AssetDatabase.LoadAssetAtPath<AudioClip>($"Assets/ReadLens/Audio/{name}.wav") ?? throw new FileNotFoundException(name + ".wav");
 
         static OVRHand HandSource(Transform anchor, OVRHand.Hand type)
         {

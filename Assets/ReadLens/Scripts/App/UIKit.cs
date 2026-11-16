@@ -21,6 +21,7 @@ namespace ReadLens.App
 
         public static TMP_FontAsset Font; // UI font (Atkinson Hyperlegible: designed for low vision)
         public static TMP_FontAsset FontBold;
+        public static Action Clicked = () => { }; // every control press (click sound)
 
         static readonly Dictionary<int, Sprite> rounded = new Dictionary<int, Sprite>();
 
@@ -118,6 +119,7 @@ namespace ReadLens.App
             colors.highlightedColor = new Color(0.85f, 0.9f, 1f);
             colors.pressedColor = new Color(0.7f, 0.78f, 0.95f);
             b.colors = colors;
+            b.onClick.AddListener(() => Clicked());
             b.onClick.AddListener(onClick);
             var label = Label(bg.transform, text, textSize, Ink, true, TextAlignmentOptions.Center);
             Stretch(label.rectTransform, 12, 0, 12, 0);
@@ -169,7 +171,7 @@ namespace ReadLens.App
                 var b = ring.gameObject.AddComponent<Button>();
                 b.targetGraphic = dot;
                 string h = hex;
-                b.onClick.AddListener(() => { Select(h); onPick(h); });
+                b.onClick.AddListener(() => { Clicked(); Select(h); onPick(h); });
                 rings.Add((hex, ring, dot.rectTransform));
             }
             return Select;
