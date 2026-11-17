@@ -1,6 +1,6 @@
-"""ReadLens demo edit v5: chapters that slide in, animated explainers (schemas.py), crossfades, quiet music bed.
+"""ReadLens demo edit v6: chapters that slide in, animated explainers (schemas.py), crossfades, quiet music bed.
 Usage: python3 -I edit.py <take.mp4> <assets_dir> <work_dir> <out_dir>
-assets_dir holds intro.png, endcard.png, chapter_*.png, detect/, swipe/, end/, gestures/<name>/ (%03d.png) and music.wav."""
+assets_dir holds intro.png, endcard.png, chapter_*.png, intro/, detect/, swipe/, end/, gestures/<name>/ (%03d.png) and music.wav."""
 import os
 import subprocess
 import sys
@@ -80,7 +80,7 @@ def clip(name, s, e, chapter, speed, zoom, gesture, g_start):
     return path
 
 
-parts = [card("00_intro", os.path.join(A, "intro.png"), 6), scene("detect")]
+parts = [scene("intro"), scene("detect")]
 for i, c in enumerate(CLIPS):
     if c[0] == "thumb":
         parts.append(scene("swipe"))
@@ -105,9 +105,9 @@ mix = (f"[{len(parts)}:a]atrim=0:{total:.3f},afade=t=out:st={total - 3:.3f}:d=3,
 graph = ";".join(vf + af) + ";" + mix
 
 run(inputs + ["-i", music, "-filter_complex", graph, "-map", f"[{v_prev}]", "-map", "[mix]", *ENC,
-              "-movflags", "+faststart", os.path.join(OUT, "ReadLens-edit-v5.mp4")])
+              "-movflags", "+faststart", os.path.join(OUT, "ReadLens-edit-v6.mp4")])
 run(inputs + ["-filter_complex", ";".join(vf + af), "-map", f"[{v_prev}]", "-map", f"[{a_prev}]", *ENC,
-              "-movflags", "+faststart", os.path.join(OUT, "ReadLens-edit-v5-no-music.mp4")])
+              "-movflags", "+faststart", os.path.join(OUT, "ReadLens-edit-v6-no-music.mp4")])
 run(["-i", music, "-t", f"{total:.3f}", "-af", f"afade=t=out:st={total - 3:.3f}:d=3",
      os.path.join(OUT, "ReadLens-music.wav")])
 print(f"total {total:.1f}s")

@@ -1,4 +1,5 @@
 """Animated explainers for the demo video, drawn with PIL (PNG sequences, 30 fps).
+  intro/   full screen: 1 child in 14, then the wall of text;  end/  the closing slogan
   detect/  full screen: the app finds readable text by itself and puts a button right below it
   swipe/   full screen: thumb swipe right = next page, left = previous page
   gestures/tap, gestures/swipe  small looping cards shown over the footage
@@ -48,17 +49,29 @@ def rgba(c, a=1.0):
     return tuple(c) + (int(255 * clamp(a)),)
 
 
-def text(d, x, y, s, size, color, bold=True, anchor="la", a=1.0):
-    if a < 0.02:  # PIL draws text with alpha 0 as opaque
+def ink(d, xy, s, font, color, a=1.0, anchor="la"):
+    """Draw text at opacity a. PIL ignores the alpha of a text fill, so faded text goes through a mask."""
+    if a < 0.02:
         return
-    d.text(px(x, y), s, font=F(bold, size), fill=rgba(color, a), anchor=anchor)
+    if a > 0.995:
+        d.text(xy, s, font=font, fill=tuple(color), anchor=anchor)
+        return
+    l, t, r, b = (int(v) for v in d.textbbox(xy, s, font=font, anchor=anchor))
+    l, t, r, b = l - 2, t - 2, r + 2, b + 2
+    m = Image.new("L", (r - l, b - t), 0)
+    ImageDraw.Draw(m).text((xy[0] - l, xy[1] - t), s, font=font, fill=int(255 * a), anchor=anchor)
+    d._image.paste(tuple(color), (l, t), m)
+
+
+def text(d, x, y, s, size, color, bold=True, anchor="la", a=1.0):
+    ink(d, tuple(px(x, y)), s, F(bold, size), color, a, anchor)
 
 
 def caps(d, x, y, s, size, color, a=1.0):
     f = F(True, size)
     cx = x * SS
     for ch in s:
-        d.text((cx, y * SS), ch, font=f, fill=rgba(color, a))
+        ink(d, (cx, y * SS), ch, f, color, a)
         cx += d.textlength(ch, font=f) + 0.16 * size * SS
 
 
@@ -68,7 +81,7 @@ def syll(d, x, y, line, size, a=1.0):
     cx, i = x * SS, 0
     for word in line.split(" "):
         for s in word.split("·"):
-            d.text((cx, y * SS), s, font=f, fill=rgba((BLUE, RED)[i % 2], a))
+            ink(d, (cx, y * SS), s, f, (BLUE, RED)[i % 2], a)
             cx += d.textlength(s, font=f) + 0.05 * size * SS
             i += 1
         cx += 0.42 * size * SS
@@ -406,6 +419,52 @@ def end(t, wall, logo):
     return finish(im)
 
 
+# ---------------------------------------------------------------- 5. intro: 1 child in 14, then the wall of text
+I_LEN, ONE = 7.4, 9   # ONE = which of the 14 children lights up
+
+
+def child(d, cx, cy, color, a=1.0, s=1.0):
+    """A simple seated-pupil pictogram: head and shoulders."""
+    d.ellipse(px(cx - 34 * s, cy - 92 * s, cx + 34 * s, cy - 24 * s), fill=rgba(color, a))
+    d.rounded_rectangle(px(cx - 56 * s, cy - 10 * s, cx + 56 * s, cy + 112 * s), radius=54 * s * SS, fill=rgba(color, a))
+
+
+def intro(t, wall):
+    im = Image.new("RGB", (W * SS, H * SS), CREAM)
+    d = ImageDraw.Draw(im, "RGBA")
+    out = 1 - seg(t, 4.0, 4.6)                # part 1 leaves, the wall of text arrives
+    lit = seg(t, 1.7, 2.1)
+    for i in range(14):
+        k = clamp((t - 0.25 - i * 0.07) / 0.35)
+        if k <= 0:
+            continue
+        cx, cy = 465 + (i % 7) * 165, 230 + (i // 7) * 235
+        if i == ONE:
+            color = tuple(round(a + (b - a) * lit) for a, b in zip((186, 180, 166), BLUE))
+            ripple(d, cx, cy - 20, (t - 1.7) / 0.7, BLUE, 60, 150)
+            child(d, cx, cy - 14 * lit, color, out * min(1, k * 2), 0.9 * (0.7 + 0.3 * back(k)) * (1 + 0.1 * lit))
+        else:
+            child(d, cx, cy, (186, 180, 166), out * min(1, k * 2) * (1 - 0.45 * lit), 0.9 * (0.7 + 0.3 * back(k)))
+    a = seg(t, 1.8, 2.4) * out
+    if a > 0:
+        f, x, y = F(True, 92), 0, 700 + 30 * (1 - seg(t, 1.8, 2.4))
+        parts = (("About ", INK), ("1 child in 14", BLUE), (" has dyslexia.", INK))
+        x = (W * SS - sum(d.textlength(p, font=f) for p, _ in parts)) / 2
+        for p, c in parts:
+            ink(d, (x, y * SS), p, f, c, a)
+            x += d.textlength(p, font=f)
+        text(d, W / 2, 1010, "Yang et al., Brain Sciences, 2022  ·  meta-analysis of 58 studies, children aged 6 to 13", 25,
+             (120, 114, 104), bold=False, anchor="mm", a=a)
+    b = seg(t, 4.2, 4.9)
+    put(im, wall, b)
+    c = seg(t, 4.7, 5.2)
+    if c > 0:
+        d.rounded_rectangle(px(260, 640 + 30 * (1 - c), 1660, 900 + 30 * (1 - c)), radius=28 * SS, fill=rgba(INK, c))
+        text(d, W / 2, 725 + 30 * (1 - c), "For that child,", 64, CREAM, anchor="mm", a=c)
+        text(d, W / 2, 815 + 30 * (1 - c), "a page like this can feel like a wall.", 64, CREAM, anchor="mm", a=c)
+    return finish(im)
+
+
 def render(name, seconds, frame):
     folder = os.path.join(OUT, name)
     os.makedirs(folder, exist_ok=True)
@@ -428,3 +487,4 @@ for g in ("tap", "swipe"):
     render(f"gestures/{g}", C_LEN, lambda t, g=g: gesture_card(g, t))
 wall, logo = end_layers()
 render("end", E_LEN, lambda t: end(t, wall, logo))
+render("intro", I_LEN, lambda t: intro(t, wall))
