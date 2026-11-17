@@ -1,4 +1,4 @@
-"""ReadLens demo edit v3: chapters that slide in, animated explainers (schemas.py), crossfades, quiet music bed.
+"""ReadLens demo edit v4: chapters that slide in, animated explainers (schemas.py), crossfades, quiet music bed.
 Usage: python3 -I edit.py <take.mp4> <assets_dir> <work_dir> <out_dir>
 assets_dir holds intro.png, endcard.png, chapter_*.png, detect/, swipe/, gestures/<name>/ (%03d.png) and music.wav."""
 import os
@@ -105,9 +105,9 @@ mix = (f"[{len(parts)}:a]atrim=0:{total:.3f},afade=t=out:st={total - 3:.3f}:d=3,
 graph = ";".join(vf + af) + ";" + mix
 
 run(inputs + ["-i", music, "-filter_complex", graph, "-map", f"[{v_prev}]", "-map", "[mix]", *ENC,
-              "-movflags", "+faststart", os.path.join(OUT, "ReadLens-edit-v3.mp4")])
+              "-movflags", "+faststart", os.path.join(OUT, "ReadLens-edit-v4.mp4")])
 run(inputs + ["-filter_complex", ";".join(vf + af), "-map", f"[{v_prev}]", "-map", f"[{a_prev}]", *ENC,
-              "-movflags", "+faststart", os.path.join(OUT, "ReadLens-edit-v3-no-music.mp4")])
+              "-movflags", "+faststart", os.path.join(OUT, "ReadLens-edit-v4-no-music.mp4")])
 run(["-i", music, "-t", f"{total:.3f}", "-af", f"afade=t=out:st={total - 3:.3f}:d=3",
      os.path.join(OUT, "ReadLens-music.wav")])
 print(f"total {total:.1f}s")

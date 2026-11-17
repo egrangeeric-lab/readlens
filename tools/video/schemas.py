@@ -5,7 +5,7 @@
 Usage: python3 -I schemas.py <fonts_dir> <out_dir> [preview]   (preview = a few still frames only)"""
 import os
 import sys
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
 FONTS, OUT = sys.argv[1], sys.argv[2]
 PREVIEW = len(sys.argv) > 3
@@ -13,7 +13,6 @@ SS, W, H, FPS = 2, 1920, 1080, 30
 INK, PANEL, CREAM, PAPER = (21, 23, 28), (34, 38, 47), (251, 245, 230), (247, 240, 225)
 NAVY, ACCENT, LEMON, WHITE, MUTED = (27, 58, 138), (111, 160, 245), (242, 207, 59), (255, 255, 255), (167, 174, 187)
 BLUE, RED, GREY = (31, 95, 191), (192, 57, 43), (120, 114, 104)
-SKIN, SKIN2, LINE = (241, 224, 206), (222, 200, 178), (140, 112, 94)
 _fonts = {}
 
 
@@ -95,49 +94,61 @@ def panel(box, radius, fill, blur=26, off=16):
     return layer, d
 
 
-def limb(d, pts, w, color):
-    d.line([c for p in pts for c in p], fill=color, width=round(w), joint="curve")
-    for x, y in pts:
-        d.ellipse([x - w / 2, y - w / 2, x + w / 2, y + w / 2], fill=color)
+def bezier(start, *cubics, n=24):
+    """Sample a chain of cubic Bezier segments (each: c1, c2, end) into a polyline."""
+    pts, p0 = [start], start
+    for c1, c2, p3 in cubics:
+        for i in range(1, n + 1):
+            t = i / n
+            pts.append(tuple((1 - t) ** 3 * a + 3 * (1 - t) ** 2 * t * b + 3 * (1 - t) * t * t * c + t ** 3 * d
+                             for a, b, c, d in zip(p0, c1, c2, p3)))
+        p0 = p3
+    return pts
 
 
-HAND_W, HAND_H = 800, 760  # hand design box, in units
+HAND_W, HAND_H = 800, 760  # hand layer, in units (the drawing itself is designed on a 400x300 grid, doubled)
+FIST = bezier((400, 232), ((352, 214), (312, 190), (292, 160)), ((282, 128), (256, 104), (220, 99)),
+              ((180, 93), (122, 95), (96, 103)), ((70, 111), (58, 134), (72, 151)), ((61, 161), (60, 181), (75, 191)),
+              ((68, 202), (71, 219), (87, 227)), ((85, 239), (94, 252), (111, 256)), ((150, 266), (200, 263), (232, 251)),
+              ((272, 262), (322, 292), (350, 322)))
+CREASES = [bezier((72, 151), ((110, 154), (150, 152), (178, 146))), bezier((75, 191), ((110, 194), (148, 192), (174, 186))),
+           bezier((87, 227), ((115, 230), (145, 228), (166, 222)))]
 
 
-def hand(u, tip=300, lift=0.0, glow=0.0):
-    """Right hand as its owner sees it: fingers curled, index pointing left, thumb resting on top of it.
-    tip = where the thumb touches the index (220 = near the fingertip, 400 = near the knuckle), lift = thumb raised."""
-    k = u * SS
-    img = Image.new("RGBA", (round(HAND_W * k), round(HAND_H * k)), (0, 0, 0, 0))
+def hand(u, tip=300, lift=0.0, glow=0.0, fill=INK):
+    """Line-art hand as its owner sees it: one cream outline for the curled fist, the thumb in yellow lying on the index.
+    tip = where the thumb touches the index (232 = near the fingertip, 400 = near the knuckle), lift = thumb raised."""
+    k = 2 * u * SS
+    img = Image.new("RGBA", (round(HAND_W * u * SS), round(HAND_H * u * SS)), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
 
-    def p(x, y):
-        return (x * k, y * k)
+    def path(pts):
+        return [(x * k, (y + 37) * k) for x, y in pts]
 
-    ol = 5 * k
-    arm, index = [p(800, 960), p(560, 440)], [p(470, 305), p(270, 290), p(186, 328), p(214, 386)]
-    for grow, color in ((ol, LINE), (0, SKIN)):  # one outline around arm + palm + index
-        limb(d, arm, 150 * k + 2 * grow, color)
-        d.rounded_rectangle([410 * k - grow, 270 * k - grow, 640 * k + grow, 520 * k + grow], radius=95 * k + grow, fill=color)
-        limb(d, index, 64 * k + 2 * grow, color)
-    for y, x0, w in ((368, 262, 58), (428, 286, 54), (484, 316, 46)):  # the three other fingers, curled
-        limb(d, [p(455, y), p(x0, y)], w * k + 2 * ol, LINE)
-        limb(d, [p(455, y), p(x0, y)], w * k, SKIN2)
-    tp = p(tip, 256 - 58 * lift)
-    thumb = [p(590, 345), p(478 + 0.45 * (tip - 300), 226 - 24 * lift), tp]
+    def stroke(pts, color, w):
+        pts = path(pts)
+        d.line(pts, fill=color, width=round(w * k), joint="curve")
+        for x, y in (pts[0], pts[-1]):
+            d.ellipse([x - w * k / 2, y - w * k / 2, x + w * k / 2, y + w * k / 2], fill=color)
+
+    d.polygon(path(FIST + [(400, 322)]), fill=fill)
+    stroke(FIST, CREAM, 5)
+    for c in CREASES:
+        stroke(c, (148, 145, 137), 4)
+    x, y, r = tip / 2 + 3, 91 - 30 * lift, 17
     if glow > 0:
-        r = 54 * k
-        d.ellipse([tp[0] - r, tp[1] - r, tp[0] + r, tp[1] + r], outline=rgba(LEMON, glow), width=round(7 * k))
-    limb(d, thumb, 60 * k + 2 * ol, LINE)
-    limb(d, thumb, 60 * k, SKIN)
-    d.ellipse([tp[0] - 20 * k, tp[1] - 24 * k, tp[0] + 16 * k, tp[1] + 6 * k], fill=(250, 238, 226))  # nail
-    # fade the wrist out so the cut never shows
-    fade = Image.new("L", img.size, 255)
-    fd = ImageDraw.Draw(fade)
-    h0 = int(img.size[1] * 0.80)
-    for y in range(h0, img.size[1]):
-        fd.line([0, y, img.size[0], y], fill=int(255 * (1 - (y - h0) / (img.size[1] - h0))))
-    img.putalpha(Image.composite(img.getchannel("A"), Image.new("L", img.size, 0), fade))
+        gx, gy = path([(x, y)])[0]
+        d.ellipse([gx - 30 * k, gy - 30 * k, gx + 30 * k, gy + 30 * k], fill=rgba(LEMON, 0.35 * glow))
+    thumb = bezier((286, 142), ((262, 104), (x + 46, y - r - 7), (x, y - r)),
+                   ((x - r * 1.35, y - r), (x - r * 1.35, y + r), (x, y + r)), ((x + 36, y + r + 2), (238, 130), (270, 176)))
+    d.polygon(path(thumb), fill=fill)
+    stroke(thumb, LEMON, 5)
+    # fade the wrist out (it leaves through the right and bottom edges) so the cut never shows
+    w, h = img.size
+    ramp = lambda a, b: (lambda v: max(0, min(255, int(255 * (b - v / 255) / (b - a)))))  # 255 before a, 0 after b
+    fade = ImageChops.multiply(Image.linear_gradient("L").rotate(90).resize((w, h)).point(ramp(0.70, 0.92)),
+                               Image.linear_gradient("L").resize((w, h)).point(ramp(0.74, 0.90)))
+    img.putalpha(Image.composite(img.getchannel("A"), Image.new("L", (w, h), 0), fade))
     return img
 
 
@@ -327,12 +338,12 @@ def gesture_card(name, t):
     d = ImageDraw.Draw(im, "RGBA")
     if name == "tap":
         lift = 1 - seg(t, 0.7, 0.9) + seg(t, 1.3, 1.6)
-        im.paste(h := hand(0.31, tip=300, lift=lift, glow=clamp(1 - lift)), px(8, 22), h)
+        im.paste(h := hand(0.31, tip=300, lift=lift, glow=clamp(1 - lift), fill=(24, 27, 33)), px(8, 22), h)
         ripple(d, 8 + 300 * 0.31, 22 + 256 * 0.31, (t - 0.9) / 0.6, LEMON, 14, 56)
         title, lines = "Thumb tap", ("Reads the", "detected page")
     else:
         right, left = seg(t, 0.3, 0.8), seg(t, 1.7, 2.2)
-        im.paste(h := hand(0.31, tip=232 + 168 * (right - left), glow=1.0 if 0 < right < 1 or 0 < left < 1 else 0.0), px(8, 22), h)
+        im.paste(h := hand(0.31, tip=232 + 168 * (right - left), glow=1.0 if 0 < right < 1 or 0 < left < 1 else 0.0, fill=(24, 27, 33)), px(8, 22), h)
         ar, al = seg(t, 0.3, 0.5) * (1 - seg(t, 1.1, 1.4)), seg(t, 1.7, 1.9) * (1 - seg(t, 2.5, 2.8))
         if ar > 0:
             arrow(d, 78, 78 + 60 * max(0.4, right), 62, LEMON, ar, w=6)
