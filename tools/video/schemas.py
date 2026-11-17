@@ -360,6 +360,52 @@ def gesture_card(name, t):
     return im
 
 
+# ---------------------------------------------------------------- 4. end card: the wall of text gives way to the slogan
+E_LEN = 6.5
+SLOGAN = ("Ev·ery page", "can be", "read·a·ble.")
+
+
+def end_layers():
+    wall = Image.new("RGBA", (W * SS, H * SS), (0, 0, 0, 0))
+    d = ImageDraw.Draw(wall)
+    f, y, line = F(False, 31), 60, ""
+    for wd in (BODY + " ").split() * 12:
+        trial = (line + " " + wd).strip()
+        if d.textlength(trial, font=f) > 1660 * SS:
+            text(d, 130, y, line, 31, (142, 136, 124), bold=False)
+            line, y = wd, y + 37
+            if y > 1010:
+                break
+        else:
+            line = trial
+    logo = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "docs", "brand", "readlens-wordmark-light.png"))
+    return wall, logo.resize((round(118 * SS * logo.width / logo.height), 118 * SS), Image.LANCZOS)
+
+
+def end(t, wall, logo):
+    im = Image.new("RGB", (W * SS, H * SS), CREAM)
+    d = ImageDraw.Draw(im, "RGBA")
+    k = seg(t, 0.9, 2.3)                      # a scan line wipes the cramped page from top to bottom
+    y = round(H * k)
+    put(im, wall, 0.07)
+    if y < H:
+        low = wall.crop((0, y * SS, W * SS, H * SS))
+        im.paste(low, (0, y * SS), low)
+    if 0 < k < 1:
+        for j in range(70):
+            d.rectangle(px(0, y - j - 1, W, y - j), fill=rgba(BLUE, 0.22 * (1 - j / 70)))
+        d.rectangle(px(0, y, W, y + 4), fill=rgba(BLUE))
+    for i, line in enumerate(SLOGAN):         # the slogan, set the way the app sets a page
+        a = seg(t, 1.5 + i * 0.35, 2.1 + i * 0.35)
+        if a > 0:
+            syll(d, 130, 150 + i * 205 + 40 * (1 - a), line, 172, a)
+    a = seg(t, 3.2, 3.9)
+    if a > 0:
+        put(im, logo, a, at=(126, 880))
+        text(d, 1790, 940, "Meta Quest 3 · 3S     On-device     No photo stored", 30, (90, 86, 78), bold=False, anchor="rm", a=a)
+    return finish(im)
+
+
 def render(name, seconds, frame):
     folder = os.path.join(OUT, name)
     os.makedirs(folder, exist_ok=True)
@@ -380,3 +426,5 @@ win2, pages, clip = swipe_layers()
 render("swipe", S_LEN, lambda t: swipe(t, bg2, win2, pages, clip))
 for g in ("tap", "swipe"):
     render(f"gestures/{g}", C_LEN, lambda t, g=g: gesture_card(g, t))
+wall, logo = end_layers()
+render("end", E_LEN, lambda t: end(t, wall, logo))
