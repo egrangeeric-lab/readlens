@@ -46,9 +46,9 @@ for b in range(bars):
         pluck = np.exp(-tt2 * 5) * (np.sin(2 * np.pi * f * tt2) + 0.3 * np.sin(2 * np.pi * 2 * f * tt2))
         arp[s:e] += pluck * (0.9 if k % 2 == 0 else 0.6)
 
-mix = 0.55 * pad + 0.22 * arp
+mix = 0.55 * pad + 0.07 * arp  # arpeggio barely there: a voice-over sits on top
 # gentle one-pole low-pass to round off the highs
-alpha = 0.18
+alpha = 0.11
 y = np.empty_like(mix)
 acc = 0.0
 for i in range(n):  # shortcut: python loop is slow (~5 s for 100 s of audio); fine for a one-off render
