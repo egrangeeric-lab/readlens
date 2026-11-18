@@ -10,7 +10,7 @@ Deadline: Wed Nov 18 2026, 12:00 PT / 21:00 Paris.
 ## Elevator pitch (200 characters max)
 
 ```
-Hold up any printed page and read it again in your own font, spacing and colors. A hands-only mixed-reality reading aid for children with dyslexia, on Meta Quest 3.
+1 child in 14 has dyslexia, and not every page gets adapted for them. ReadLens turns any printed page into their own font, spacing and colors. Hands only, on Meta Quest 3.
 ```
 
 ## Thumbnail
@@ -24,9 +24,11 @@ Hold up any printed page and read it again in your own font, spacing and colors.
 
 About **1 child in 14** has dyslexia: a 2022 meta-analysis of 58 studies found it in 7.1% of primary school children, with the same rate across writing systems. That is two children in a typical classroom.
 
-For those children, a school page can feel like a wall: letters crowd together, b turns into d, lines slide into each other. Research shows that wider letter spacing alone cuts reading errors for dyslexic children, and every reader has their own comfortable font, size and colors. But those settings only exist on screens, for text someone has typed in. The homework sheet and the library book stay as they are.
+For those children, a school page can feel like a wall: letters crowd together, b turns into d, lines slide into each other. Research shows that wider letter spacing alone cuts reading errors for dyslexic children, and every reader has their own comfortable font, size and colors.
 
-We wanted the real page to change, without retyping anything.
+**The help exists, but it depends on someone else.** An adapted page means a teacher who knows the tools, has the time, and reprints each worksheet with larger type, more spacing, the right colors and contrast. Many teachers do it. Many cannot, for every child, every subject, every day. And nobody reprints the library book, the textbook or the note on the board. So the same child can be supported in one class and left alone in the next.
+
+We wanted to put that adaptation in the child's own hands: the real page changes, for any page, without waiting for anyone to prepare it.
 
 ## What it does
 
@@ -60,7 +62,7 @@ Unity 6 with Meta XR Core SDK, Interaction SDK and MR Utility Kit (v209), OpenXR
 
 ## Accomplishments that we're proud of
 
-Accessibility is the product, not a setting. Setting it up needs no reading: you compare two versions and pick one. All presets pass the WCAG 4.5:1 contrast ratio. Camera frames are processed in memory on the headset and never stored or sent; only the reading profile and the captured text are saved, locally.
+Accessibility is the product, not a setting, and it no longer depends on who prepared the page. Setting it up needs no reading: you compare two versions and pick one. All presets pass the WCAG 4.5:1 contrast ratio. Camera frames are processed in memory on the headset and never stored or sent; only the reading profile and the captured text are saved, locally.
 
 ## What we learned
 
