@@ -1,11 +1,13 @@
 """ReadLens demo edit v6: chapters that slide in, animated explainers (schemas.py), crossfades, quiet music bed.
-Usage: python3 -I edit.py <take.mp4> <assets_dir> <work_dir> <out_dir>
+Usage: python3 -I edit.py <take.mp4> <assets_dir> <work_dir> <out_dir> [voice.m4a]
+Clip lengths are tuned so each sequence sits under its sentence of the recorded voice-over.
 assets_dir holds intro.png, endcard.png, chapter_*.png, intro/, detect/, swipe/, end/, gestures/<name>/ (%03d.png) and music.wav."""
 import os
 import subprocess
 import sys
 
 TAKE, A, WORK, OUT = sys.argv[1:5]
+VOICE = sys.argv[5] if len(sys.argv) > 5 else None
 os.makedirs(WORK, exist_ok=True)
 XF = 0.35  # crossfade seconds
 ENC = ["-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-r", "30",
@@ -14,11 +16,11 @@ GX, GY = 1920 - 500 - 56, 1080 - 280 - 56  # gesture card, bottom right
 
 # name, start, end (in the take), chapter, speed, slow zoom, gesture, gesture start (s into the clip)
 CLIPS = [
-    ("capture", 108, 118, "capture", 1.0, True, "tap", 1.0),
-    ("comfort_a", 43, 50.5, "comfort", 1.5, False, None, 0),
-    ("comfort_b", 54, 62, None, 1.5, False, None, 0),
+    ("capture", 108, 117.1, "capture", 1.0, True, "tap", 1.0),
+    ("comfort_a", 43, 50.5, "comfort", 1.0, False, None, 0),
+    ("comfort_b", 54, 62, None, 1.0, False, None, 0),
     ("handwriting", 84, 90, "handwriting", 1.0, True, None, 0),
-    ("focus", 90, 101, "focus", 1.0, True, "swipe", 1.5),
+    ("focus", 90.5, 96.31, "focus", 1.0, True, "swipe", 1.5),
     ("pages", 118, 126, "pages", 1.0, False, None, 0),
     ("settings", 129, 141, "settings", 1.3, False, None, 0),
     ("contrast", 165, 174, "contrast", 1.2, True, None, 0),
@@ -44,11 +46,11 @@ def card(name, image, seconds):
     return path
 
 
-def scene(name):
-    """Full-screen animated explainer from a PNG sequence."""
+def scene(name, hold=0.0):
+    """Full-screen animated explainer from a PNG sequence; hold = seconds to freeze on its last frame."""
     path = os.path.join(WORK, f"{name}.mp4")
     run(["-framerate", "30", "-i", os.path.join(A, name, "%03d.png"), "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo",
-         *ENC, "-shortest", path])
+         "-vf", f"tpad=stop_mode=clone:stop_duration={hold}", *ENC, "-shortest", path])
     return path
 
 
@@ -80,7 +82,7 @@ def clip(name, s, e, chapter, speed, zoom, gesture, g_start):
     return path
 
 
-parts = [scene("intro"), scene("detect")]
+parts = [scene("intro", hold=0.9), scene("detect")]
 for i, c in enumerate(CLIPS):
     if c[0] == "thumb":
         parts.append(scene("swipe"))
@@ -111,3 +113,10 @@ run(inputs + ["-filter_complex", ";".join(vf + af), "-map", f"[{v_prev}]", "-map
 run(["-i", music, "-t", f"{total:.3f}", "-af", f"afade=t=out:st={total - 3:.3f}:d=3",
      os.path.join(OUT, "ReadLens-music.wav")])
 print(f"total {total:.1f}s")
+if VOICE:  # final cut: the voice-over on top, music lower so it stays behind
+    vmix = (f"[{len(parts)}:a]atrim=0:{total:.3f},afade=t=out:st={total - 3:.3f}:d=3,volume=0.12[m];"
+            f"[{len(parts) + 1}:a]atrim=0:{total:.3f},volume=1.3[vo];"
+            f"[{a_prev}][m][vo]amix=inputs=3:duration=first:normalize=0,alimiter=limit=0.95[mix]")
+    run(inputs + ["-i", music, "-i", VOICE, "-filter_complex", ";".join(vf + af) + ";" + vmix, "-map", f"[{v_prev}]",
+                  "-map", "[mix]", *ENC, "-movflags", "+faststart", os.path.join(OUT, "ReadLens-final.mp4")])
+print("starts:", " ".join(f"{os.path.basename(p)[:-4]}={sum(durs[:i]) - XF * i:.1f}" for i, p in enumerate(parts)))
