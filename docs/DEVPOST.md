@@ -187,10 +187,10 @@ What excites us most is mixed reality that is quiet, private and personal. It ru
 
 ## Target launch date
 
-**YOU must confirm.** Suggested answer:
+Decided: late December 2026.
 
 ```
-Q2 2027, after a closed beta with families and speech therapists in early 2027.
+Late December 2026.
 ```
 
 ---

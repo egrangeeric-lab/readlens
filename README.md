@@ -1,73 +1,131 @@
 # ReadLens
 
-Mixed-reality reading aid for kids with dyslexia, built for Meta Quest 3/3S.
-Look at a printed page, pinch, and read the same page rewritten with *your* reading profile
-(font, spacing, syllable colours) in a panel you scroll with your hands.
+**Every page can be readable.**
 
-Meta VR Start Developer Competition 2026 — Track **Productivity**, Division **New Experience**.
-Deadline: **Nov 18, 2026, 12:00 PT (21:00 Paris)**. Code freeze: Nov 18, 12:00 Paris.
+ReadLens is a mixed-reality reading aid for Meta Quest 3 and 3S. Hold up any text, on paper or on a screen, and read it
+again in your own font, spacing and colors. It is built for children with dyslexia, and it is used with hands only.
 
-## Decisions
+![The app detects the page and offers to read it](docs/devpost/1-page-detected.jpg)
 
-| Topic | Choice | Why |
-| --- | --- | --- |
-| Engine | Unity 6000.6.5f1, Meta XR Core + Interaction + MRUK v209 | Headset runs Horizon OS v209; official Passthrough Camera samples are Unity. |
-| Camera | MRUK `PassthroughCameraAccess` | Public API, Quest 3/3S. Not supported by XR Simulator: test on device. |
-| OCR | **On-device**: Google ML Kit text recognition (bundled model). Fallback: Tesseract. | Free, offline, nothing leaves the headset (kids' documents). Returns word boxes, needed for the page overlay. |
-| Text rendering | TextMeshPro + OpenDyslexic (SIL OFL) | Spacing per character, word, line; per-character colour. |
-| Language | Everything in English (UI, video, form). Syllable rules: EN + FR. | Competition rule. |
+Entry for the **Meta VR Start Developer Competition 2026** — track *Productivity*, division *New*.
+Planned public release: **late December 2026**.
 
-## Costs
+## Why
 
-All zero: Unity Personal, Meta SDKs, Developer Dashboard and release channels, ML Kit / Tesseract,
-OpenDyslexic, Devpost, YouTube. A cloud OCR would only be needed if on-device OCR fails on the
-headset, and would need a billing account.
+About 1 child in 14 has dyslexia: a 2022 meta-analysis of 58 studies found it in 7.1% of primary school children
+([Yang et al., Brain Sciences](https://pmc.ncbi.nlm.nih.gov/articles/PMC8870220/)). Adapted pages help, with wider
+spacing, larger type and the right colors, but they depend on a teacher who has the tools and the time to reprint each
+document. ReadLens puts that adaptation in the child's hands, for any page.
 
-## Data and access
+It keeps the child *reading*. Reading a text aloud helps to get through a page, but it is not reading practice.
 
-- Camera permission `horizonos.permission.HEADSET_CAMERA` and scene permission (table detection) are asked at first launch.
-- Frames are processed in memory on the headset, never stored, never sent.
-- Judges get the app through the invite URL of the `Competition` release channel.
+## What it does
 
-## Milestones
-
-- [x] **M0 Foundations** — repo, Unity project, Meta packages, formatting engine + tests
-- [ ] **M1 Hello headset** — XR setup, passthrough, reader panel with sample text, running on the Quest 3S
-- [ ] **M2 Capture + OCR** — camera frame → on-device OCR → text in the panel
-- [ ] **M3 Hands** — pinch to capture, scroll/grab panel, profile editor with live preview, saved profile
-- [ ] **M4 Polish** — panel anchored on the detected table (MRUK), 3-step onboarding, sounds, reading ruler, 72 fps
-- [ ] **M5 Stretch: on-page overlay** — adapted text laid over the real page at capture time (OCR word boxes + camera-to-world)
-- [ ] **M6 Ship** — APK in `Competition` channel, invite URL tested, video, Devpost form
-
-## Video (under 3:00, aim for 2:15–2:30)
-
-| Time | Shot |
+| | |
 | --- | --- |
-| 0:00–0:15 | A dense real page, as a kid sees it. The problem in one sentence. |
-| 0:15–0:50 | Pinch → the same page reappears, airy and coloured. The wow moment. |
-| 0:50–1:30 | Set a profile with hands, live preview. |
-| 1:30–2:05 | Scroll, reading ruler, panel resting on the desk (or on the page). |
-| 2:05–2:30 | Why it matters + what's next. |
+| **Finds the text by itself** | The headset looks about once per second. When it sees readable text, a "Page detected" button appears right under the real page. |
+| **One thumb tap reads it** | Tap your thumb on your index finger, or touch the button. Both hands can stay on the book. |
+| **Your own reading profile** | Three fonts (OpenDyslexic, Atkinson Hyperlegible, classic), size, letter / word / line spacing, page and text colors, coloring by syllables (English and French), words or lines, and b / d / p / q highlighted. |
+| **Pages like a book** | Each capture is a page. Swipe your thumb right for the next one, left for the previous one. Pages are kept between sessions. |
+| **Focus mode** | One large sentence at a time. |
+| **Find your comfort** | First launch: four "this one or that one?" choices build the profile, with no reading required. |
+| **Contrast check** | Settings warn when a color choice drops below the WCAG 4.5:1 ratio. |
 
-Record in-headset (built-in recorder or Meta Quest Developer Hub cast), voice-over in English afterwards.
-No identifiable child on screen. Demo pages written by us.
+It also reads handwriting, and a two-hand frame gesture captures only part of a page.
 
-## Layout
+![The page rewritten with a reading profile](docs/devpost/2-your-page.jpg)
 
-- `Assets/ReadLens/Scripts/Core` — pure C#: profile, syllables, rich-text formatter (no Unity dependency)
-- `Assets/ReadLens/Scripts/App` — Unity components (reader panel, …)
-- `Assets/ReadLens/Tests/Editor` — EditMode tests
+## Privacy
 
-Run tests: Unity → Window → General → Test Runner → EditMode → Run All.
+Everything runs on the headset. Camera frames are processed in memory and are never stored or sent. The app has **no
+network permission**. Only the reading profile and the captured text are saved, locally.
 
-## Build and run on the Quest
+## How it works
+
+1. **Camera** — the Passthrough Camera API (MR Utility Kit `PassthroughCameraAccess`) provides a frame and the camera
+   pose at that moment.
+2. **OCR** — the frame is read back asynchronously and sent to Google ML Kit text recognition (bundled model), through a
+   small Java plugin (`Assets/Plugins/Android/ReadLensOcr.java`).
+3. **Placement** — text line boxes are projected back into the room with the camera pose, so the button sits under the
+   real text.
+4. **Reflow and render** — lines become paragraphs, then a pure C# engine applies the profile (syllable splitter,
+   rich-text formatter, sentence splitter, contrast math) and TextMeshPro draws it.
+5. **Display** — the window is a compositor layer with supersampling, for sharp text at 90 Hz.
+6. **Hands** — Interaction SDK poke and ray on every control, `OVRHand` microgestures for thumb tap and swipe, a grab
+   bar to move the window.
+
+Stack: Unity 6000.6.5f1, Meta XR Core SDK, Interaction SDK and MR Utility Kit v209, OpenXR, Android IL2CPP ARM64.
+
+## Project layout
+
+| Path | Content |
+| --- | --- |
+| `Assets/ReadLens/Scripts/Core` | Pure C#, no Unity dependency: reading profile, syllables, formatter, reflow, sentences, contrast |
+| `Assets/ReadLens/Scripts/App` | Unity components: main window, OCR service, gestures, UI kit, motion |
+| `Assets/ReadLens/Editor` | `Bootstrap.cs` configures the project, generates the scene and builds the APK |
+| `Assets/ReadLens/Tests/Editor` | 26 EditMode tests for the text engine and the release settings |
+| `Assets/Plugins/Android` | ML Kit plugin, Gradle template, manifest |
+| `docs/` | Submission notes, Devpost copy, video notes, brand assets |
+| `tools/video` | Scripts that generate the demo video graphics and the edit |
+
+The scene `Assets/ReadLens/Scenes/Main.unity` is generated by `Bootstrap.CreateScene` on every build. Do not edit it by
+hand: change `Bootstrap.cs` instead.
+
+## Build
+
+Requirements: Unity **6000.6.5f1** with Android Build Support, and a Quest 3 or 3S in developer mode.
 
 ```bash
 U=/Applications/Unity/Hub/Editor/6000.6.5f1/Unity.app/Contents/MacOS/Unity
-$U -batchmode -buildTarget Android -projectPath . -executeMethod ReadLens.EditorTools.Bootstrap.Setup   # once, configures XR/Meta/OpenXR
+# once: player settings, OpenXR, Meta project setup
+$U -batchmode -buildTarget Android -projectPath . -executeMethod ReadLens.EditorTools.Bootstrap.Setup
+# build Builds/ReadLens.apk
 $U -batchmode -quit -buildTarget Android -projectPath . -executeMethod ReadLens.EditorTools.Bootstrap.Build
 adb install -r -g Builds/ReadLens.apk
 ```
 
-Same actions in the editor: menu **ReadLens → Setup Project / Build APK**.
-If `adb devices` says `offline`: wake the headset and accept "Allow USB debugging" inside it.
+The same actions are in the editor menu **ReadLens → Setup Project / Build APK**.
+
+Release signing uses a keystore kept outside the repository (`~/.android-keystores/`). Without it, the build falls back
+to a debug signature, which is fine for testing on your own headset. See [docs/SUBMISSION.md](docs/SUBMISSION.md).
+
+Run the tests:
+
+```bash
+$U -batchmode -runTests -testPlatform EditMode -projectPath . -testResults results.xml
+```
+
+The Passthrough Camera API is not supported by the XR Simulator: capture must be tested on a headset.
+
+## Try it
+
+1. Launch ReadLens and allow camera access.
+2. Answer the four "Find your comfort" choices, or press Skip.
+3. Hold a page, with good light, about 40 cm in front of you. When "Page detected" appears, tap your thumb on your
+   index finger.
+4. Capture a second page, then swipe your thumb to turn pages. Try Focus.
+5. Open Settings to change font, spacing and colors.
+
+## Roadmap
+
+- **Late December 2026** — public release on the Meta Horizon Store.
+- Adapted text laid directly over the paper.
+- Reading aloud with word highlighting, as an option next to reading.
+- More languages for the syllable rules.
+- Trials with families, teachers and speech therapists.
+
+## What the research says
+
+Wider letter spacing is the best supported setting: it halved reading errors for dyslexic children in
+[Zorzi et al., PNAS, 2012](https://pmc.ncbi.nlm.nih.gov/articles/PMC3497756). The evidence for special fonts is weak,
+so ReadLens offers fonts as a choice, not as a cure, and lets each reader decide.
+
+## Third-party assets
+
+- [OpenDyslexic](https://opendyslexic.org/) and [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/) —
+  SIL Open Font License, texts in `Assets/ReadLens/Fonts`.
+- [Material Symbols](https://fonts.google.com/icons) — Apache License 2.0, text in `Assets/ReadLens/Icons`.
+- Interface sounds from the Meta Interaction SDK samples.
+- Google ML Kit text recognition, Meta XR SDKs and TextMeshPro, under their own terms.
+
+Demo texts and the video music are original.
