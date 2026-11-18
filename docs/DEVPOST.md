@@ -32,6 +32,8 @@ This project started at home. My wife has been a primary school teacher for 24 y
 
 We wanted to put that adaptation in the child's own hands: the real page changes, for any page, without waiting for anyone to prepare it.
 
+**Why not just read it aloud?** Smart glasses, Meta's included, can already read a text out loud. That helps to get through a page, but it does not solve learning: a child who only listens is not practicing reading. ReadLens keeps the child reading, with their own eyes, on a page they can finally manage.
+
 ## What it does
 
 ReadLens is a mixed-reality reading aid for Meta Quest 3 and 3S.
