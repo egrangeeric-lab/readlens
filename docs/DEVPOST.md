@@ -26,7 +26,9 @@ About **1 child in 14** has dyslexia: a 2022 meta-analysis of 58 studies found i
 
 For those children, a school page can feel like a wall: letters crowd together, b turns into d, lines slide into each other. Research shows that wider letter spacing alone cuts reading errors for dyslexic children, and every reader has their own comfortable font, size and colors.
 
-**The help exists, but it depends on someone else.** An adapted page means a teacher who knows the tools, has the time, and reprints each worksheet with larger type, more spacing, the right colors and contrast. Many teachers do it. Many cannot, for every child, every subject, every day. And nobody reprints the library book, the textbook or the note on the board. So the same child can be supported in one class and left alone in the next.
+This project started at home. My wife has been a primary school teacher for 24 years, and she has taught many children with these difficulties. She uses tools that reprint a document with different spacing, colors and contrast, and she has seen what a difference they make.
+
+**The help exists, but it depends on someone else.** Those tools are still rare, and hardly known outside the classrooms that use them. An adapted page means a teacher who knows them, has the time, and reprints each worksheet. Many teachers cannot do that for every child, every subject, every day. And nobody reprints the library book, the textbook or the note on the board. So the same child can be supported in one class and left alone in the next.
 
 We wanted to put that adaptation in the child's own hands: the real page changes, for any page, without waiting for anyone to prepare it.
 
