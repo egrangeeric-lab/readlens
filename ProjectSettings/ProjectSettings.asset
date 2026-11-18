@@ -178,7 +178,7 @@ PlayerSettings:
     iPhone: 0
     tvOS: 0
   overrideDefaultApplicationIdentifier: 1
-  AndroidBundleVersionCode: 460604
+  AndroidBundleVersionCode: 463234
   AndroidMinSdkVersion: 32
   AndroidTargetSdkVersion: 34
   AndroidPreferredInstallLocation: 0
@@ -299,36 +299,55 @@ PlayerSettings:
   AndroidAppBundleSizeToValidate: 200
   AndroidReportGooglePlayAppDependencies: 1
   androidSymbolsSizeThreshold: 800
-  m_BuildTargetIcons: []
+  m_BuildTargetIcons:
+  - m_BuildTarget: 
+    m_Icons:
+    - serializedVersion: 2
+      m_Icon: {fileID: 2800000, guid: 3a1b65e1290b4409b85276c5e566a586, type: 3}
+      m_Width: 128
+      m_Height: 128
+      m_Kind: 0
   m_BuildTargetPlatformIcons:
   - m_BuildTarget: Android
     m_Icons:
-    - m_Textures: []
+    - m_Textures:
+      - {fileID: 2800000, guid: f69d2c6c684f24193878a1f0fb07705d, type: 3}
+      - {fileID: 2800000, guid: a47263f3bba684bb7a455b8300cedad1, type: 3}
       m_Width: 432
       m_Height: 432
       m_Kind: 2
       m_SubKind: 
-    - m_Textures: []
+    - m_Textures:
+      - {fileID: 2800000, guid: f69d2c6c684f24193878a1f0fb07705d, type: 3}
+      - {fileID: 2800000, guid: a47263f3bba684bb7a455b8300cedad1, type: 3}
       m_Width: 324
       m_Height: 324
       m_Kind: 2
       m_SubKind: 
-    - m_Textures: []
+    - m_Textures:
+      - {fileID: 2800000, guid: f69d2c6c684f24193878a1f0fb07705d, type: 3}
+      - {fileID: 2800000, guid: a47263f3bba684bb7a455b8300cedad1, type: 3}
       m_Width: 216
       m_Height: 216
       m_Kind: 2
       m_SubKind: 
-    - m_Textures: []
+    - m_Textures:
+      - {fileID: 2800000, guid: f69d2c6c684f24193878a1f0fb07705d, type: 3}
+      - {fileID: 2800000, guid: a47263f3bba684bb7a455b8300cedad1, type: 3}
       m_Width: 162
       m_Height: 162
       m_Kind: 2
       m_SubKind: 
-    - m_Textures: []
+    - m_Textures:
+      - {fileID: 2800000, guid: f69d2c6c684f24193878a1f0fb07705d, type: 3}
+      - {fileID: 2800000, guid: a47263f3bba684bb7a455b8300cedad1, type: 3}
       m_Width: 108
       m_Height: 108
       m_Kind: 2
       m_SubKind: 
-    - m_Textures: []
+    - m_Textures:
+      - {fileID: 2800000, guid: f69d2c6c684f24193878a1f0fb07705d, type: 3}
+      - {fileID: 2800000, guid: a47263f3bba684bb7a455b8300cedad1, type: 3}
       m_Width: 81
       m_Height: 81
       m_Kind: 2

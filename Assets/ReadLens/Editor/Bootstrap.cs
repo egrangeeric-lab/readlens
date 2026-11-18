@@ -51,7 +51,7 @@ namespace ReadLens.EditorTools
             CreateScene(); // always regenerated: the scene is an output of this script, not hand-edited
             Directory.CreateDirectory("Builds");
             PlayerSettings.bundleVersion = "1.0.0";
-            PlayerSettings.Android.bundleVersionCode = ReadLens.Core.BuildVersion.Code(System.DateTime.UtcNow);
+            SetAppIcons();
             ReleaseSigning.Apply();
             UnityEditor.Build.Reporting.BuildReport report;
             try { report = BuildPipeline.BuildPlayer(new[] { ScenePath }, ApkPath, BuildTarget.Android, BuildOptions.None); }
@@ -59,6 +59,22 @@ namespace ReadLens.EditorTools
             Debug.Log($"[ReadLens] Build {report.summary.result}, {report.summary.totalSize / 1e6:F1} MB");
             if (Application.isBatchMode && report.summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
                 EditorApplication.Exit(1);
+        }
+
+        // Android ignores the default icon: each icon kind (legacy, round, adaptive) must be filled, or the Unity cube ships.
+        static void SetAppIcons()
+        {
+            Texture2D Load(string name) => AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/ReadLens/Brand/{name}.png")
+                ?? throw new FileNotFoundException("App icon missing: " + name);
+            var full = Load("AppIcon");
+            var layers = new[] { Load("AppIconBackground"), Load("AppIconForeground") }; // adaptive: background, foreground
+            foreach (var kind in PlayerSettings.GetSupportedIconKinds(NamedBuildTarget.Android))
+            {
+                var icons = PlayerSettings.GetPlatformIcons(NamedBuildTarget.Android, kind);
+                foreach (var i in icons)
+                    i.SetTextures(i.maxLayerCount >= 2 ? layers : new[] { full });
+                PlayerSettings.SetPlatformIcons(NamedBuildTarget.Android, kind, icons);
+            }
         }
 
         static void ConfigurePlayer()
