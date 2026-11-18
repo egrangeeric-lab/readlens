@@ -10,7 +10,7 @@ Deadline: Wed Nov 18 2026, 12:00 PT / 21:00 Paris.
 ## Elevator pitch (200 characters max)
 
 ```
-1 child in 14 has dyslexia, and not every page gets adapted for them. ReadLens turns any printed page into their own font, spacing and colors. Hands only, on Meta Quest 3.
+1 child in 14 has dyslexia, and not every page gets adapted for them. ReadLens turns any text, on paper or on a screen, into their own font, spacing and colors. Hands only, on Meta Quest 3.
 ```
 
 ## Thumbnail
