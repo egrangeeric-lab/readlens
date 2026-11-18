@@ -28,6 +28,8 @@ For those children, a school page can feel like a wall: letters crowd together, 
 
 This project started at home. My wife has been a primary school teacher for 24 years, and she has taught many children with these difficulties. She uses tools that reprint a document with different spacing, colors and contrast, and she has seen what a difference they make.
 
+When I saw my son taking part in this hackathon, I discovered the headset through him, and I thought of her pupils straight away. I did the research on my side, on dyslexia and on what actually helps, and asked him to help me with the development.
+
 **The help exists, but it depends on someone else.** Those tools are still rare, and hardly known outside the classrooms that use them. An adapted page means a teacher who knows them, has the time, and reprints each worksheet. Many teachers cannot do that for every child, every subject, every day. And nobody reprints the library book, the textbook or the note on the board. So the same child can be supported in one class and left alone in the next.
 
 We wanted to put that adaptation in the child's own hands: the real page changes, for any page, without waiting for anyone to prepare it.
